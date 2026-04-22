@@ -426,7 +426,7 @@ const ALL_DATA = {};
 const DATES = [];
 
 async function loadData() {
-  const res = await fetch('data.json');
+  const res = await fetch('./data.json');
   const json = await res.json();
   Object.assign(ALL_DATA, json.ALL_DATA);
   DATES.push(...json.DATES);
