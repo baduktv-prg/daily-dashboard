@@ -211,7 +211,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  margin-bottom: auto;
+  margin-bottom: 18px;
   display: flex; align-items: center; gap: 8px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 10px;
@@ -571,14 +571,14 @@ const deltaArrow = delta >= 100 ? '▲' : '▼';
     </div>
     <div class="card">
       <div class="card-title">프로그램 등급 비율 <span id="donut-prev-label" style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none;margin-left:4px"></span></div>
-      <div class="donut-wrap">
+      <div class="donut-wrap" style="margin:auto 0">
         <svg id="donut-svg" width="120" height="120" viewBox="0 0 120 120"></svg>
         <div class="donut-legend" id="donut-legend"></div>
       </div>
     </div>
     <div class="card">
       <div class="card-title">경쟁채널 시청률 비교</div>
-      <div id="comp-bars"></div>
+      <div id="comp-bars" style="margin:auto 0"></div>
     </div>
   </div>
 
