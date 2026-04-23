@@ -528,8 +528,8 @@ const deltaArrow = delta >= 100 ? '▲' : '▼';
       <div class="kpi-value mono">${d.avg_rating.toFixed(3)}<span style="font-size:14px;font-weight:400">%</span></div>
       <div class="kpi-sub">
         ${delta != null
-          ? `<span class="${deltaClass}">${deltaArrow} ${delta}%</span> 전주 대비`
-          : `일평균 ${d.daily_avg.toFixed(3)}%`}
+          ? `전주 대비 <span class="${deltaClass}">${delta}%</span>`
+          : ``}
       </div>
     </div>
     <div class="kpi" style="--kc:var(--b)">
