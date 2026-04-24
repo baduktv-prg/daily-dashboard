@@ -382,6 +382,11 @@ body {
   <div class="logo">바둑TV <span>·</span> 일일 편성 성과 대시보드</div>
   <div class="topbar-right">
     <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">🌙 다크</button>
+     <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+      <button id="toggle-daily" onclick="setMode('daily')" style="padding:6px 12px;font-size:12px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif">일간</button>
+      <button id="toggle-weekly" onclick="setMode('weekly')" style="padding:6px 12px;font-size:12px;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);cursor:pointer;font-family:'Noto Sans KR',sans-serif">주간</button>
+      <button id="toggle-monthly" onclick="setMode('monthly')" style="padding:6px 12px;font-size:12px;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);cursor:pointer;font-family:'Noto Sans KR',sans-serif">월간</button>
+    </div>
     <div class="date-nav" id="date-nav">
       <button id="btn-prev">← 이전</button>
       <div class="date-display" id="date-display" onclick="togglePicker()">
