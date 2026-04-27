@@ -543,44 +543,39 @@ function buildWeeklyPicker(picker) {
   const dayNames = ['월','화','수','목','금','토','일'];
   const getDow = d => { const day = new Date(d).getDay(); return day === 0 ? 6 : day - 1; };
 
+  // weekStart(월요일) 기준으로 그룹핑 (월 경계 무관)
+  const byWeekStart = {};
+  DATES.forEach(d => {
+    const ws = getWeekStart(d);
+    if (!byWeekStart[ws]) byWeekStart[ws] = [];
+    byWeekStart[ws].push(d);
+  });
+
+  // 월요일 기준 월별 묶기
   const byMonth = {};
-  for (const d of DATES) {
-    const m = d.slice(0, 7);
-    if (!byMonth[m]) byMonth[m] = [];
-    byMonth[m].push(d);
-  }
+  Object.entries(byWeekStart).forEach(([ws, dates]) => {
+    const m = ws.slice(0, 7);
+    if (!byMonth[m]) byMonth[m] = {};
+    byMonth[m][ws] = dates;
+  });
 
   let html = '';
-  for (const [month, dates] of Object.entries(byMonth)) {
+  for (const [month, weeks] of Object.entries(byMonth).sort()) {
     const [y, m] = month.split('-');
-    const byWeek = {};
-    dates.forEach(d => {
-      const w = getWeekOfMonth(d);
-      if (!byWeek[w]) byWeek[w] = [];
-      byWeek[w].push(d);
-    });
-
-    const gridStyle = 'display:grid;grid-template-columns:26px repeat(7,1fr);gap:3px;';
-
     html += `<div class="month-group">
       <div class="month-label">${y}년 ${parseInt(m)}월</div>
-      <div style="${gridStyle}">
+      <div style="display:grid;grid-template-columns:26px repeat(7,1fr);gap:3px">
         <div></div>`;
-    // 요일 헤더
     dayNames.forEach((dn, i) => {
       const color = i === 5 ? '#5b8dee' : i === 6 ? '#e05c5c' : 'var(--muted)';
       html += `<div style="text-align:center;font-size:10px;color:${color};padding:3px 0;font-weight:500">${dn}</div>`;
     });
 
-    // 주차 정렬
-    const sortedWeeks = Object.keys(byWeek).map(Number).sort((a,b)=>a-b);
-    sortedWeeks.forEach(w => {
-      const wDates = byWeek[w];
-      const key = `${month}-W${w}`;
-      const isSelected = selectedWeeks.has(key);
-      html += `<div onclick="toggleWeek('${key}')"
-        style="background:${isSelected?'var(--accent)':'var(--surface2)'};color:${isSelected?'#fff':'var(--muted)'};font-size:10px;border-radius:3px;text-align:center;cursor:pointer;padding:5px 0;line-height:1">${w}</div>`;
-
+    let wNum = 1;
+    for (const [ws, wDates] of Object.entries(weeks).sort()) {
+      const isSelected = selectedWeeks.has(ws);
+      html += `<div onclick="toggleWeek('${ws}')"
+        style="background:${isSelected?'var(--accent)':'var(--surface2)'};color:${isSelected?'#fff':'var(--muted)'};font-size:10px;border-radius:3px;text-align:center;cursor:pointer;padding:5px 0;line-height:1">${wNum}</div>`;
       const cells = Array(7).fill(null);
       wDates.forEach(d => { cells[getDow(d)] = d; });
       cells.forEach((d, i) => {
@@ -591,7 +586,8 @@ function buildWeeklyPicker(picker) {
           html += `<div></div>`;
         }
       });
-    });
+      wNum++;
+    }
     html += `</div></div>`;
   }
   picker.innerHTML = html;
@@ -599,28 +595,31 @@ function buildWeeklyPicker(picker) {
 
 let selectedWeeks = new Set();
 
-function toggleWeek(key) {
-  if (selectedWeeks.has(key)) {
-    selectedWeeks.delete(key);
+function toggleWeek(ws) {
+  if (selectedWeeks.has(ws)) {
+    selectedWeeks.delete(ws);
   } else {
-    selectedWeeks.add(key);
+    selectedWeeks.add(ws);
   }
   if (selectedWeeks.size === 0) {
     buildWeeklyPicker(document.getElementById('date-picker'));
     return;
   }
-  // 선택된 주차들의 날짜 합산
+  // weekStart 기준 월~일 날짜 수집
   const allDates = [];
-  selectedWeeks.forEach(k => {
-    const [kym, kw] = k.split('-W');
-    const wNum = parseInt(kw);
-    DATES.filter(d => d.startsWith(kym) && getWeekOfMonth(d) === wNum)
-      .forEach(d => allDates.push(d));
+  selectedWeeks.forEach(weekStart => {
+    const monday = new Date(weekStart);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const ds = d.toISOString().slice(0, 10);
+      if (DATES.includes(ds)) allDates.push(ds);
+    }
   });
   allDates.sort();
   currentIdx = DATES.indexOf(allDates[allDates.length-1]);
   buildWeeklyPicker(document.getElementById('date-picker'));
-  renderPeriodFromDates(allDates);
+  renderPeriodFromDates(allDates, 'weekly');
 }
 
 function buildMonthlyPicker(picker) {
@@ -1229,17 +1228,16 @@ function aggregatePeriod(dates) {
 // 주간/월간 렌더 (anchor 기반)
 function renderPeriod(mode, anchorDate) {
   selectedWeeks.clear();
-  const dates = getPeriodDates(mode, anchorDate);
   if (mode === 'weekly') {
-    const key = `${anchorDate.slice(0,7)}-W${getWeekOfMonth(anchorDate)}`;
-    selectedWeeks.add(key);
+    selectedWeeks.add(getWeekStart(anchorDate));
     if (currentMode === 'weekly') buildWeeklyPicker(document.getElementById('date-picker'));
   }
-  renderPeriodFromDates(dates);
+  const dates = getPeriodDates(mode, anchorDate);
+  renderPeriodFromDates(dates, mode);
 }
 
-// 날짜 배열 기반 렌더 (다중 주차 선택용)
-function renderPeriodFromDates(dates) {
+// 날짜 배열 기반 렌더
+function renderPeriodFromDates(dates, mode) {
   if (!dates.length) return;
   const agg = aggregatePeriod(dates);
   if (!agg) return;
@@ -1283,7 +1281,7 @@ function renderPeriodFromDates(dates) {
     <div class="kpi" style="--kc:var(--s)">
       <div class="kpi-label">평균 시청률</div>
       <div class="kpi-value mono">${agg.avgRating.toFixed(3)}<span style="font-size:14px;font-weight:400">%</span></div>
-      <div class="kpi-sub">${agg.totalDays}일 평균</div>
+      <div class="kpi-sub">${mode === 'monthly' ? `${parseInt(dates[0].slice(5,7))}월 평균` : `${agg.totalDays}일 평균`}</div>
     </div>
     <div class="kpi" style="--kc:var(--b)">
       <div class="kpi-label">S/A 등급 비율</div>
