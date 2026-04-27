@@ -442,10 +442,11 @@ async function loadData() {
   const json = await res.json();
   Object.assign(ALL_DATA, json.ALL_DATA);
   DATES.push(...json.DATES);
+  currentIdx = DATES.length - 1;
   buildPicker();
   renderDate(DATES[currentIdx]);
 }
-let currentIdx = DATES.length - 1;
+let currentIdx = 0;
 
 // ══════════════════════════════════════════
 // DATE PICKER
@@ -1326,8 +1327,7 @@ function renderPeriodFromDates(dates, mode) {
     <div class="kpi" style="--kc:var(--s)">
       <div class="kpi-label">평균 시청률</div>
       <div class="kpi-value mono">${agg.avgRating.toFixed(3)}<span style="font-size:14px;font-weight:400">%</span></div>
-      <div class="kpi-sub">${agg.totalDays}일 평균</div>
-      <div class="kpi-sub">${mode === 'monthly' ? `${parseInt(dates[0].slice(5,7))}월 평균` : `${agg.totalDays}일 평균`}</div>
+      <div class="kpi-sub">${dates[0].replace(/-/g,'년 ').replace(/-/,'월 ')+'일'} ~ ${dates[dates.length-1].replace(/-/g,'년 ').replace(/-/,'월 ')+'일'} (${agg.totalDays}일) 평균</div>
     </div>
     <div class="kpi" style="--kc:var(--b)">
       <div class="kpi-label">S/A 등급 비율</div>
