@@ -551,10 +551,12 @@ function buildWeeklyPicker(picker) {
     byWeekStart[ws].push(d);
   });
 
-  // 월요일 기준 월별 묶기
+  // 월요일 기준 월별 묶기 → 일요일(주 마지막 날) 기준으로 월 배치
   const byMonth = {};
   Object.entries(byWeekStart).forEach(([ws, dates]) => {
-    const m = ws.slice(0, 7);
+    const sunday = new Date(ws);
+    sunday.setDate(sunday.getDate() + 6);
+    const m = sunday.toISOString().slice(0, 7);
     if (!byMonth[m]) byMonth[m] = {};
     byMonth[m][ws] = dates;
   });
@@ -1248,10 +1250,10 @@ function getWeekLabel(ws) {
   return `${parseInt(m)}월 ${wNum}주차`;
 }
 
-function getWeeklySubLabel() {
-  if (selectedWeeks.size === 0) return '';
-  const labels = [...selectedWeeks].sort().map(ws => getWeekLabel(ws));
-  return labels.join('+') + ' 평균';
+function getWeeklySubLabel(dates) {
+  if (!dates || !dates.length) return '';
+  const fmt = d => d.replace(/(\d{4})-(\d{2})-(\d{2})/, '$1년 $2월 $3일').replace(/월 0/,'월 ');
+  return `${fmt(dates[0])} ~ ${fmt(dates[dates.length-1])} (${dates.length}일) 평균`;
 }
 
 function renderPeriodFromDates(dates, mode) {
@@ -1298,7 +1300,7 @@ function renderPeriodFromDates(dates, mode) {
     <div class="kpi" style="--kc:var(--s)">
       <div class="kpi-label">평균 시청률</div>
       <div class="kpi-value mono">${agg.avgRating.toFixed(3)}<span style="font-size:14px;font-weight:400">%</span></div>
-      <div class="kpi-sub">${mode === 'monthly' ? `${parseInt(dates[0].slice(5,7))}월 평균` : getWeeklySubLabel()}</div>
+      <div class="kpi-sub">${mode === 'monthly' ? `${parseInt(dates[0].slice(5,7))}월 평균` : getWeeklySubLabel(dates)}</div>
     </div>
     <div class="kpi" style="--kc:var(--b)">
       <div class="kpi-label">S/A 등급 비율</div>
