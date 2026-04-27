@@ -451,14 +451,26 @@ let currentIdx = DATES.length - 1;
 // ══════════════════════════════════════════
 function getWeekOfMonth(dateStr) {
   const d = new Date(dateStr);
-  const day = d.getDate();
-  return Math.ceil(day / 7);
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  // 이번 주 월요일 구하기
+  const dow = d.getDay() === 0 ? 6 : d.getDay() - 1; // 월=0...일=6
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - dow);
+  // 이달 1일 기준 첫 월요일(또는 그 이전 월요일) 구하기
+  const first = new Date(year, month, 1);
+  const firstDow = first.getDay() === 0 ? 6 : first.getDay() - 1;
+  const firstMonday = new Date(first);
+  if (firstDow > 0) firstMonday.setDate(1 - firstDow);
+  // 주차 계산
+  return Math.floor((monday - firstMonday) / (7 * 86400000)) + 1;
 }
 
-function getWeekLabel(anchorDate) {
-  const [y, m] = anchorDate.split('-');
-  const w = getWeekOfMonth(anchorDate);
-  return `${parseInt(m)}월 ${w}주차`;
+function getWeekStart(dateStr) {
+  const d = new Date(dateStr);
+  const dow = d.getDay() === 0 ? 6 : d.getDay() - 1;
+  d.setDate(d.getDate() - dow);
+  return d.toISOString().slice(0, 10);
 }
 
 function buildPicker() {
