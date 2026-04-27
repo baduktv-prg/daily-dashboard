@@ -489,10 +489,38 @@ document.addEventListener('DOMContentLoaded', () => {
   loadData();
 
   document.getElementById('btn-prev').onclick = () => {
-    if (currentIdx > 0) { currentIdx--; renderDate(DATES[currentIdx]); }
+    if (currentMode === 'daily') {
+      if (currentIdx > 0) { currentIdx--; renderDate(DATES[currentIdx]); }
+    } else if (currentMode === 'weekly') {
+      if (currentIdx >= 7) { currentIdx -= 7; } else { currentIdx = 0; }
+      renderPeriod('weekly', DATES[currentIdx]);
+    } else {
+      const cur = DATES[currentIdx];
+      const ym = cur.slice(0,7);
+      const prevMonthDates = DATES.filter(d => d.slice(0,7) < ym);
+      if (prevMonthDates.length) {
+        const last = prevMonthDates[prevMonthDates.length-1];
+        currentIdx = DATES.indexOf(last);
+        renderPeriod('monthly', last);
+      }
+    }
   };
   document.getElementById('btn-next').onclick = () => {
-    if (currentIdx < DATES.length - 1) { currentIdx++; renderDate(DATES[currentIdx]); }
+    if (currentMode === 'daily') {
+      if (currentIdx < DATES.length - 1) { currentIdx++; renderDate(DATES[currentIdx]); }
+    } else if (currentMode === 'weekly') {
+      if (currentIdx + 7 < DATES.length) { currentIdx += 7; } else { currentIdx = DATES.length - 1; }
+      renderPeriod('weekly', DATES[currentIdx]);
+    } else {
+      const cur = DATES[currentIdx];
+      const ym = cur.slice(0,7);
+      const nextMonthDates = DATES.filter(d => d.slice(0,7) > ym);
+      if (nextMonthDates.length) {
+        const first = nextMonthDates[0];
+        currentIdx = DATES.indexOf(first);
+        renderPeriod('monthly', first);
+      }
+    }
   };
   document.addEventListener('keydown', e => {
     if (e.key === 'ArrowLeft')  document.getElementById('btn-prev').click();
@@ -895,8 +923,237 @@ function renderBC(d) {
     </tr>`;
   }).join('');
 }
+// ══════════════════════════════════════════
+// MODE (daily / weekly / monthly)
+// ══════════════════════════════════════════
+let currentMode = 'daily';
+
 function setMode(mode) {
-  console.log(mode);
+  currentMode = mode;
+  const btns = {
+    daily:   document.getElementById('toggle-daily'),
+    weekly:  document.getElementById('toggle-weekly'),
+    monthly: document.getElementById('toggle-monthly'),
+  };
+  Object.entries(btns).forEach(([k, b]) => {
+    if (!b) return;
+    b.style.background = k === mode ? 'var(--accent)' : 'transparent';
+    b.style.color      = k === mode ? '#fff' : 'var(--muted)';
+  });
+  const date = DATES[currentIdx] || DATES[DATES.length - 1];
+  if (mode === 'daily') {
+    renderDate(date);
+  } else {
+    renderPeriod(mode, date);
+  }
+}
+
+// 기간 내 날짜 목록 반환
+function getPeriodDates(mode, anchorDate) {
+  if (mode === 'weekly') {
+    const idx = DATES.indexOf(anchorDate);
+    const start = Math.max(0, idx - 6);
+    return DATES.slice(start, idx + 1);
+  } else { // monthly
+    const ym = anchorDate.slice(0, 7);
+    return DATES.filter(d => d.startsWith(ym));
+  }
+}
+
+// 기간 집계
+function aggregatePeriod(dates) {
+  const ds = dates.map(d => ALL_DATA[d]).filter(Boolean);
+  if (!ds.length) return null;
+
+  // 평균 시청률
+  const avgRating = ds.reduce((s, d) => s + d.avg_rating, 0) / ds.length;
+
+  // 프라임 시청률 평균
+  const primeRatings = ds.map(d => d.slot_rating['프라임']).filter(v => v != null);
+  const primeAvg = primeRatings.length ? primeRatings.reduce((a,b)=>a+b,0)/primeRatings.length : null;
+
+  // 레저채널 내 점유율 평균
+  const ccsVals = ds.map(d => d.ccs).filter(v => v != null);
+  const ccsAvg = ccsVals.length ? ccsVals.reduce((a,b)=>a+b,0)/ccsVals.length : null;
+
+  // S/A 등급 비율
+  let totalGrade = 0, saCount = 0;
+  const gradeSums = {};
+  ds.forEach(d => {
+    Object.entries(d.grade_counts).forEach(([g, cnt]) => {
+      gradeSums[g] = (gradeSums[g]||0) + cnt;
+      totalGrade += cnt;
+      if (g==='S'||g==='A') saCount += cnt;
+    });
+  });
+  const saPct = totalGrade ? (saCount/totalGrade*100).toFixed(0) : 0;
+
+  // 시간대별 평균
+  const slots = ['새벽','오전','준프라임','프라임'];
+  const slot_rating = {}, slot_share = {};
+  slots.forEach(sl => {
+    const vals = ds.map(d => d.slot_rating[sl]).filter(v=>v!=null);
+    const svals = ds.map(d => d.slot_share[sl]).filter(v=>v!=null);
+    slot_rating[sl] = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    slot_share[sl]  = svals.length ? svals.reduce((a,b)=>a+b,0)/svals.length : null;
+  });
+
+  // 경쟁채널 평균
+  const channels = ['자사(바둑TV)','K바둑','브레인TV','GOLF&PBA','빌리어즈TV'];
+  const comp = {};
+  channels.forEach(ch => {
+    const vals = ds.map(d => d.comp[ch]).filter(v=>v!=null&&v>0);
+    comp[ch] = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+  });
+
+  // 등급 분포
+  const grade_counts = gradeSums;
+
+  // 전체 프로그램 풀 (BEST/WORST용)
+  const allProgs = ds.flatMap(d => d.all_programs || []);
+
+  // 시청률 BEST5/WORST5
+  const byRating = [...allProgs].sort((a,b) => b.시청률-a.시청률);
+  const ratingBest5  = byRating.slice(0, 5);
+  const ratingWorst5 = byRating.slice(-5).reverse();
+
+  // 점유율 BEST5/WORST5
+  const byShare = [...allProgs].sort((a,b) => b.점유율-a.점유율);
+  const shareBest5  = byShare.slice(0, 5);
+  const shareWorst5 = byShare.slice(-5).reverse();
+
+  // 시청시간 BEST5/WORST5
+  const byEngagement = [...allProgs].sort((a,b) => b.몰입률-a.몰입률);
+  const engageBest5  = byEngagement.slice(0, 5);
+  const engageWorst5 = byEngagement.slice(-5).reverse();
+
+  return {
+    avgRating, primeAvg, ccsAvg, saPct,
+    slot_rating, slot_share, comp, grade_counts,
+    ratingBest5, ratingWorst5,
+    shareBest5, shareWorst5,
+    engageBest5, engageWorst5,
+    totalDays: ds.length,
+  };
+}
+
+// 주간/월간 렌더
+function renderPeriod(mode, anchorDate) {
+  const dates = getPeriodDates(mode, anchorDate);
+  if (!dates.length) return;
+
+  const agg = aggregatePeriod(dates);
+  if (!agg) return;
+
+  const label = mode === 'weekly'
+    ? `${dates[0]} ~ ${dates[dates.length-1]}`
+    : anchorDate.slice(0,7).replace('-','년 ') + '월';
+
+  document.getElementById('date-label').textContent = label;
+
+  const saPct = agg.saPct;
+  const main = document.getElementById('main-content');
+
+  const gb = g => `<span class="badge b${(g||'').toLowerCase()}">${g||''}</span>`;
+  const bwRows = (list, color) => list.map(p => `
+    <div class="bw-item" style="border-left-color:${color}">
+      <span class="pill ${p.재방?'pill-r':'pill-o'}">${p.재방?'재':'본'}</span>
+      <span class="bw-name">${p.프로그램명}</span>
+      <span class="bw-slot">${p.시간대}</span>
+      ${gb(p.주등급)}
+      <span class="bw-val" style="color:${color}">${(p.시청률||0).toFixed(3)}%</span>
+    </div>`).join('');
+
+  const shareRows = (list, color) => list.map(p => `
+    <div class="bw-item" style="border-left-color:${color}">
+      <span class="pill ${p.재방?'pill-r':'pill-o'}">${p.재방?'재':'본'}</span>
+      <span class="bw-name">${p.프로그램명}</span>
+      <span class="bw-slot">${p.시간대}</span>
+      ${gb(p.주등급)}
+      <span class="bw-val" style="color:${color}">${(p.점유율||0).toFixed(3)}%</span>
+    </div>`).join('');
+
+  const engRows = (list, color) => list.map(p => `
+    <div class="bw-item" style="border-left-color:${color}">
+      <span class="pill ${p.재방?'pill-r':'pill-o'}">${p.재방?'재':'본'}</span>
+      <span class="bw-name">${p.프로그램명}</span>
+      <span class="bw-slot">${p.시간대}</span>
+      ${gb(p.주등급)}
+      <span class="bw-val" style="color:${color}">${((p.몰입률||0)*100).toFixed(1)}%</span>
+    </div>`).join('');
+
+  main.innerHTML = `
+  <div class="kpi-row" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi" style="--kc:var(--s)">
+      <div class="kpi-label">평균 시청률</div>
+      <div class="kpi-value mono">${agg.avgRating.toFixed(3)}<span style="font-size:14px;font-weight:400">%</span></div>
+      <div class="kpi-sub">${agg.totalDays}일 평균</div>
+    </div>
+    <div class="kpi" style="--kc:var(--b)">
+      <div class="kpi-label">S/A 등급 비율</div>
+      <div class="kpi-value">${saPct}<span style="font-size:14px;font-weight:400">%</span></div>
+      <div class="kpi-sub">S: ${agg.grade_counts['S']||0}편 · A: ${agg.grade_counts['A']||0}편</div>
+    </div>
+    <div class="kpi" style="--kc:var(--rerun)">
+      <div class="kpi-label">프라임 시청률</div>
+      <div class="kpi-value mono">${agg.primeAvg != null ? agg.primeAvg.toFixed(3) : '-'}<span style="font-size:14px;font-weight:400">%</span></div>
+      <div class="kpi-sub">프라임 시간대 평균</div>
+    </div>
+    <div class="kpi" style="--kc:var(--c)">
+      <div class="kpi-label">레저채널 내 점유율</div>
+      <div class="kpi-value mono">${agg.ccsAvg != null ? (agg.ccsAvg*100).toFixed(2) : '-'}<span style="font-size:14px;font-weight:400">%</span></div>
+      <div class="kpi-sub">자사 ÷ (자사+경쟁채널)</div>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="card">
+      <div class="card-title">시간대별 평균 시청률 · 점유율</div>
+      <div class="slot-bars" id="slot-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">프로그램 등급 비율</div>
+      <div class="donut-wrap" style="margin:auto 0">
+        <svg id="donut-svg" width="150" height="150" viewBox="0 0 150 150"></svg>
+        <div class="donut-legend" id="donut-legend"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row3">
+    <div class="card">
+      <div class="card-title">시청률 BEST · WORST <span style="font-size:10px;color:var(--muted);font-weight:400">TOP 5</span></div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:0.5px">▲ BEST</div>
+      <div class="bw-list">${bwRows(agg.ratingBest5,'var(--s)')}</div>
+      <div style="font-size:10px;color:var(--muted);margin:14px 0 8px;letter-spacing:0.5px">▼ WORST</div>
+      <div class="bw-list">${bwRows(agg.ratingWorst5,'var(--c)')}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">점유율 BEST · WORST <span style="font-size:10px;color:var(--muted);font-weight:400">TOP 5</span></div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:0.5px">▲ BEST</div>
+      <div class="bw-list">${shareRows(agg.shareBest5,'var(--s)')}</div>
+      <div style="font-size:10px;color:var(--muted);margin:14px 0 8px;letter-spacing:0.5px">▼ WORST</div>
+      <div class="bw-list">${shareRows(agg.shareWorst5,'var(--c)')}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">몰입률 BEST · WORST <span style="font-size:10px;color:var(--muted);font-weight:400">TOP 5</span></div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px;letter-spacing:0.5px">▲ BEST</div>
+      <div class="bw-list">${engRows(agg.engageBest5,'var(--s)')}</div>
+      <div style="font-size:10px;color:var(--muted);margin:14px 0 8px;letter-spacing:0.5px">▼ WORST</div>
+      <div class="bw-list">${engRows(agg.engageWorst5,'var(--c)')}</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:0">
+    <div class="card-title">경쟁채널 시청률 비교</div>
+    <div id="comp-bars" style="margin:auto 0"></div>
+  </div>
+  `;
+
+  // 슬롯바, 도넛, 경쟁채널 렌더
+  renderSlotBars({ slot_rating: agg.slot_rating, slot_share: agg.slot_share });
+  renderDonut({ grade_counts: agg.grade_counts }, null);
+  renderComp({ comp: agg.comp });
 }
 </script>
 </body>
