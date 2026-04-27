@@ -449,8 +449,30 @@ let currentIdx = DATES.length - 1;
 // ══════════════════════════════════════════
 // DATE PICKER
 // ══════════════════════════════════════════
+function getWeekOfMonth(dateStr) {
+  const d = new Date(dateStr);
+  const day = d.getDate();
+  return Math.ceil(day / 7);
+}
+
+function getWeekLabel(anchorDate) {
+  const [y, m] = anchorDate.split('-');
+  const w = getWeekOfMonth(anchorDate);
+  return `${parseInt(m)}월 ${w}주차`;
+}
+
 function buildPicker() {
   const picker = document.getElementById('date-picker');
+  if (currentMode === 'daily') {
+    buildDailyPicker(picker);
+  } else if (currentMode === 'weekly') {
+    buildWeeklyPicker(picker);
+  } else {
+    buildMonthlyPicker(picker);
+  }
+}
+
+function buildDailyPicker(picker) {
   const byMonth = {};
   for (const d of DATES) {
     const m = d.slice(0, 7);
@@ -471,6 +493,51 @@ function buildPicker() {
   picker.innerHTML = html;
 }
 
+function buildWeeklyPicker(picker) {
+  // 주차별로 그룹핑
+  const byMonthWeek = {};
+  for (const d of DATES) {
+    const ym = d.slice(0,7);
+    const w = getWeekOfMonth(d);
+    const key = `${ym}-W${w}`;
+    if (!byMonthWeek[key]) byMonthWeek[key] = [];
+    byMonthWeek[key].push(d);
+  }
+  let html = '';
+  let prevYm = '';
+  for (const [key, dates] of Object.entries(byMonthWeek)) {
+    const ym = key.slice(0,7);
+    const [y, m] = ym.split('-');
+    const w = key.split('-W')[1];
+    const anchor = dates[dates.length-1]; // 주차 마지막 날
+    if (ym !== prevYm) {
+      if (prevYm) html += '</div>';
+      html += `<div class="month-group"><div class="month-label">${y}년 ${parseInt(m)}월</div><div style="display:flex;flex-direction:column;gap:4px">`;
+      prevYm = ym;
+    }
+    html += `<div class="date-btn" style="width:100%;text-align:left;padding:5px 8px" onclick="selectWeek('${anchor}')">${parseInt(m)}월 ${w}주차 (${dates[0].slice(5)}~${dates[dates.length-1].slice(5)})</div>`;
+  }
+  if (prevYm) html += '</div></div>';
+  picker.innerHTML = html;
+}
+
+function buildMonthlyPicker(picker) {
+  const months = [...new Set(DATES.map(d => d.slice(0,7)))];
+  let html = '';
+  let prevY = '';
+  for (const ym of months) {
+    const [y, m] = ym.split('-');
+    if (y !== prevY) {
+      if (prevY) html += '</div></div>';
+      html += `<div class="month-group"><div class="month-label">${y}년</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">`;
+      prevY = y;
+    }
+    html += `<div class="date-btn" onclick="selectMonth('${ym}')">${parseInt(m)}월</div>`;
+  }
+  if (prevY) html += '</div></div>';
+  picker.innerHTML = html;
+}
+
 function togglePicker() {
   document.getElementById('date-picker').classList.toggle('open');
 }
@@ -481,7 +548,25 @@ document.addEventListener('click', e => {
 
 function selectDate(date) {
   currentIdx = DATES.indexOf(date);
-  renderDate(date);
+  if (currentMode === 'daily') {
+    renderDate(date);
+  } else {
+    renderPeriod(currentMode, date);
+  }
+  document.getElementById('date-picker').classList.remove('open');
+}
+
+function selectWeek(anchorDate) {
+  currentIdx = DATES.indexOf(anchorDate);
+  renderPeriod('weekly', anchorDate);
+  document.getElementById('date-picker').classList.remove('open');
+}
+
+function selectMonth(ym) {
+  const monthDates = DATES.filter(d => d.startsWith(ym));
+  if (!monthDates.length) return;
+  currentIdx = DATES.indexOf(monthDates[0]);
+  renderPeriod('monthly', monthDates[0]);
   document.getElementById('date-picker').classList.remove('open');
 }
 
@@ -940,6 +1025,7 @@ function setMode(mode) {
     b.style.background = k === mode ? 'var(--accent)' : 'transparent';
     b.style.color      = k === mode ? '#fff' : 'var(--muted)';
   });
+  buildPicker(); // 모드에 맞게 피커 재빌드
   const date = DATES[currentIdx] || DATES[DATES.length - 1];
   if (mode === 'daily') {
     renderDate(date);
@@ -951,9 +1037,10 @@ function setMode(mode) {
 // 기간 내 날짜 목록 반환
 function getPeriodDates(mode, anchorDate) {
   if (mode === 'weekly') {
-    const idx = DATES.indexOf(anchorDate);
-    const start = Math.max(0, idx - 6);
-    return DATES.slice(start, idx + 1);
+    // anchorDate가 속한 주차(월 기준)의 모든 날짜
+    const ym = anchorDate.slice(0,7);
+    const w = getWeekOfMonth(anchorDate);
+    return DATES.filter(d => d.startsWith(ym) && getWeekOfMonth(d) === w);
   } else { // monthly
     const ym = anchorDate.slice(0, 7);
     return DATES.filter(d => d.startsWith(ym));
@@ -1046,8 +1133,8 @@ function renderPeriod(mode, anchorDate) {
   if (!agg) return;
 
   const label = mode === 'weekly'
-    ? `${dates[0]} ~ ${dates[dates.length-1]}`
-    : anchorDate.slice(0,7).replace('-','년 ') + '월';
+    ? `${anchorDate.slice(0,7).replace('-','년 ')}월 ${getWeekOfMonth(anchorDate)}주차 (${dates[0].slice(5)}~${dates[dates.length-1].slice(5)})`
+    : `${anchorDate.slice(0,4)}년 ${parseInt(anchorDate.slice(5,7))}월`;
 
   document.getElementById('date-label').textContent = label;
 
@@ -1088,7 +1175,6 @@ function renderPeriod(mode, anchorDate) {
       <div class="kpi-label">평균 시청률</div>
       <div class="kpi-value mono">${agg.avgRating.toFixed(3)}<span style="font-size:14px;font-weight:400">%</span></div>
       <div class="kpi-sub">${agg.totalDays}일 평균</div>
-    </div>
     <div class="kpi" style="--kc:var(--b)">
       <div class="kpi-label">S/A 등급 비율</div>
       <div class="kpi-value">${saPct}<span style="font-size:14px;font-weight:400">%</span></div>
