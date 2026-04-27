@@ -485,46 +485,24 @@ function buildPicker() {
 }
 
 function buildDailyPicker(picker) {
-  const byMonth = {};
-  for (const d of DATES) {
-    const m = d.slice(0, 7);
-    if (!byMonth[m]) byMonth[m] = [];
-    byMonth[m].push(d);
-  }
-  let html = '';
-  for (const [month, dates] of Object.entries(byMonth)) {
-    const [y, m] = month.split('-');
-    html += `<div class="month-group">
-      <div class="month-label">${y}년 ${parseInt(m)}월</div>
-      <div class="date-grid">`;
-    dates.forEach(d => {
-      html += `<div class="date-btn" data-date="${d}" onclick="selectDate('${d}')">${parseInt(d.slice(8))}</div>`;
-    });
-    html += `</div></div>`;
-  }
-  picker.innerHTML = html;
-}
-
-function buildWeeklyPicker(picker) {
-  const byMonth = {};
-  for (const d of DATES) {
-    const m = d.slice(0, 7);
-    if (!byMonth[m]) byMonth[m] = [];
-    byMonth[m].push(d);
-  }
-
   const dayNames = ['월','화','수','목','금','토','일'];
-  // 요일 인덱스 (월=0 ~ 일=6)
   const getDow = d => {
-    const day = new Date(d).getDay(); // 0=일
-    return day === 0 ? 6 : day - 1;  // 월=0 기준으로 변환
+    const day = new Date(d).getDay();
+    return day === 0 ? 6 : day - 1;
   };
 
+  const byMonth = {};
+  for (const d of DATES) {
+    const m = d.slice(0, 7);
+    if (!byMonth[m]) byMonth[m] = [];
+    byMonth[m].push(d);
+  }
+
   let html = '';
   for (const [month, dates] of Object.entries(byMonth)) {
     const [y, m] = month.split('-');
 
-    // 주차별로 그룹핑 (월요일 기준 주차)
+    // 주차별 그룹핑
     const byWeek = {};
     dates.forEach(d => {
       const w = getWeekOfMonth(d);
@@ -534,8 +512,8 @@ function buildWeeklyPicker(picker) {
 
     html += `<div class="month-group">
       <div class="month-label">${y}년 ${parseInt(m)}월</div>
-      <div class="date-grid" style="grid-template-columns:26px repeat(7,1fr);gap:3px">
-        <div></div>`;
+      <div class="date-grid" style="grid-template-columns:repeat(7,1fr);gap:3px">`;
+
     // 요일 헤더
     dayNames.forEach((dn, i) => {
       const color = i === 5 ? '#5b8dee' : i === 6 ? '#e05c5c' : 'var(--muted)';
@@ -543,19 +521,71 @@ function buildWeeklyPicker(picker) {
     });
 
     Object.entries(byWeek).forEach(([w, wDates]) => {
-      const key = `${month}-W${w}`;
-      const isSelected = selectedWeeks.has(key);
-      // 주차 토글 버튼
-      html += `<div class="date-btn" onclick="toggleWeek('${key}')"
-        style="background:${isSelected?'var(--accent)':'var(--surface2)'};color:${isSelected?'#fff':'var(--muted)'};font-size:10px;padding:2px 0;border-radius:3px;text-align:center">${w}</div>`;
-
-      // 7칸 중 해당 요일에 날짜 배치
       const cells = Array(7).fill(null);
       wDates.forEach(d => { cells[getDow(d)] = d; });
       cells.forEach((d, i) => {
         if (d) {
           const isSat = i === 5, isSun = i === 6;
           const color = isSat ? '#5b8dee' : isSun ? '#e05c5c' : 'var(--text)';
+          html += `<div class="date-btn" data-date="${d}" onclick="selectDate('${d}')" style="color:${color}">${parseInt(d.slice(8))}</div>`;
+        } else {
+          html += `<div></div>`;
+        }
+      });
+    });
+
+    html += `</div></div>`;
+  }
+  picker.innerHTML = html;
+}
+
+function buildWeeklyPicker(picker) {
+  const dayNames = ['월','화','수','목','금','토','일'];
+  const getDow = d => { const day = new Date(d).getDay(); return day === 0 ? 6 : day - 1; };
+
+  const byMonth = {};
+  for (const d of DATES) {
+    const m = d.slice(0, 7);
+    if (!byMonth[m]) byMonth[m] = [];
+    byMonth[m].push(d);
+  }
+
+  let html = '';
+  for (const [month, dates] of Object.entries(byMonth)) {
+    const [y, m] = month.split('-');
+    const byWeek = {};
+    dates.forEach(d => {
+      const w = getWeekOfMonth(d);
+      if (!byWeek[w]) byWeek[w] = [];
+      byWeek[w].push(d);
+    });
+
+    const gridStyle = 'display:grid;grid-template-columns:26px repeat(7,1fr);gap:3px;';
+
+    html += `<div class="month-group">
+      <div class="month-label">${y}년 ${parseInt(m)}월</div>
+      <div style="${gridStyle}">
+        <div></div>`;
+    // 요일 헤더
+    dayNames.forEach((dn, i) => {
+      const color = i === 5 ? '#5b8dee' : i === 6 ? '#e05c5c' : 'var(--muted)';
+      html += `<div style="text-align:center;font-size:10px;color:${color};padding:3px 0;font-weight:500">${dn}</div>`;
+    });
+
+    // 주차 정렬
+    const sortedWeeks = Object.keys(byWeek).map(Number).sort((a,b)=>a-b);
+    sortedWeeks.forEach(w => {
+      const wDates = byWeek[w];
+      const key = `${month}-W${w}`;
+      const isSelected = selectedWeeks.has(key);
+      html += `<div onclick="toggleWeek('${key}')"
+        style="background:${isSelected?'var(--accent)':'var(--surface2)'};color:${isSelected?'#fff':'var(--muted)'};font-size:10px;border-radius:3px;text-align:center;cursor:pointer;padding:5px 0;line-height:1">${w}</div>`;
+
+      const cells = Array(7).fill(null);
+      wDates.forEach(d => { cells[getDow(d)] = d; });
+      cells.forEach((d, i) => {
+        if (d) {
+          const color = i === 5 ? '#5b8dee' : i === 6 ? '#e05c5c' : 'var(--text)';
           html += `<div class="date-btn" data-date="${d}" onclick="selectDate('${d}')" style="color:${color}">${parseInt(d.slice(8))}</div>`;
         } else {
           html += `<div></div>`;
