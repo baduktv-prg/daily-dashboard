@@ -1237,6 +1237,23 @@ function renderPeriod(mode, anchorDate) {
 }
 
 // 날짜 배열 기반 렌더
+// weekStart → "n월 n주차" 변환
+function getWeekLabel(ws) {
+  const [y, m] = ws.split('-');
+  const month = ws.slice(0, 7);
+  // 해당 월의 모든 weekStart 목록에서 순번 계산
+  const allWS = [...new Set(DATES.map(d => getWeekStart(d)))].sort()
+    .filter(w => w.slice(0,7) === month);
+  const wNum = allWS.indexOf(ws) + 1;
+  return `${parseInt(m)}월 ${wNum}주차`;
+}
+
+function getWeeklySubLabel() {
+  if (selectedWeeks.size === 0) return '';
+  const labels = [...selectedWeeks].sort().map(ws => getWeekLabel(ws));
+  return labels.join('+') + ' 평균';
+}
+
 function renderPeriodFromDates(dates, mode) {
   if (!dates.length) return;
   const agg = aggregatePeriod(dates);
@@ -1281,7 +1298,7 @@ function renderPeriodFromDates(dates, mode) {
     <div class="kpi" style="--kc:var(--s)">
       <div class="kpi-label">평균 시청률</div>
       <div class="kpi-value mono">${agg.avgRating.toFixed(3)}<span style="font-size:14px;font-weight:400">%</span></div>
-      <div class="kpi-sub">${mode === 'monthly' ? `${parseInt(dates[0].slice(5,7))}월 평균` : `${agg.totalDays}일 평균`}</div>
+      <div class="kpi-sub">${mode === 'monthly' ? `${parseInt(dates[0].slice(5,7))}월 평균` : getWeeklySubLabel()}</div>
     </div>
     <div class="kpi" style="--kc:var(--b)">
       <div class="kpi-label">S/A 등급 비율</div>
