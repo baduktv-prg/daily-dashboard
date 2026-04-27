@@ -543,27 +543,26 @@ function buildWeeklyPicker(picker) {
   const dayNames = ['월','화','수','목','금','토','일'];
   const getDow = d => { const day = new Date(d).getDay(); return day === 0 ? 6 : day - 1; };
 
-  // weekStart(월요일) 기준으로 그룹핑 (월 경계 무관)
-  const byWeekStart = {};
-  DATES.forEach(d => {
-    const ws = getWeekStart(d);
-    if (!byWeekStart[ws]) byWeekStart[ws] = [];
-    byWeekStart[ws].push(d);
-  });
-
-  // 월요일 기준 월별 묶기 → 일요일(주 마지막 날) 기준으로 월 배치
+  // 날짜를 실제 월별로 그룹핑
   const byMonth = {};
-  Object.entries(byWeekStart).forEach(([ws, dates]) => {
-    const sunday = new Date(ws);
-    sunday.setDate(sunday.getDate() + 6);
-    const m = sunday.toISOString().slice(0, 7);
-    if (!byMonth[m]) byMonth[m] = {};
-    byMonth[m][ws] = dates;
+  DATES.forEach(d => {
+    const m = d.slice(0, 7);
+    if (!byMonth[m]) byMonth[m] = [];
+    byMonth[m].push(d);
   });
 
   let html = '';
-  for (const [month, weeks] of Object.entries(byMonth).sort()) {
+  for (const [month, dates] of Object.entries(byMonth).sort()) {
     const [y, m] = month.split('-');
+
+    // 이 달에 속한 날짜들을 weekStart로 그룹핑
+    const byWeek = {};
+    dates.forEach(d => {
+      const ws = getWeekStart(d);
+      if (!byWeek[ws]) byWeek[ws] = [];
+      byWeek[ws].push(d);
+    });
+
     html += `<div class="month-group">
       <div class="month-label">${y}년 ${parseInt(m)}월</div>
       <div style="display:grid;grid-template-columns:26px repeat(7,1fr);gap:3px">
@@ -574,10 +573,12 @@ function buildWeeklyPicker(picker) {
     });
 
     let wNum = 1;
-    for (const [ws, wDates] of Object.entries(weeks).sort()) {
+    for (const [ws, wDates] of Object.entries(byWeek).sort()) {
       const isSelected = selectedWeeks.has(ws);
       html += `<div onclick="toggleWeek('${ws}')"
         style="background:${isSelected?'var(--accent)':'var(--surface2)'};color:${isSelected?'#fff':'var(--muted)'};font-size:10px;border-radius:3px;text-align:center;cursor:pointer;padding:5px 0;line-height:1">${wNum}</div>`;
+
+      // 7칸 배치 - 이 달에 속한 날짜만 표시, 나머지는 빈 칸
       const cells = Array(7).fill(null);
       wDates.forEach(d => { cells[getDow(d)] = d; });
       cells.forEach((d, i) => {
