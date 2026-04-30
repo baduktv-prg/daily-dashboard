@@ -1269,10 +1269,12 @@ function renderPeriodFromDates(dates, mode) {
   const main = document.getElementById('main-content');
 
   const gb = g => `<span class="badge b${(g||'').toLowerCase()}">${g||''}</span>`;
+  const fmtMD = d => d ? `${parseInt(d.slice(5,7))}/${d.slice(8)}` : '';
   const bwRows = (list, color) => list.map(p => `
     <div class="bw-item" style="border-left-color:${color}">
       <span class="pill ${p.재방?'pill-r':'pill-o'}">${p.재방?'재':'본'}</span>
       <span class="bw-name">${p.프로그램명}</span>
+      ${p.날짜 ? `<span class="bw-slot" style="color:var(--muted)">${fmtMD(p.날짜)}</span>` : ''}
       <span class="bw-slot">${p.시간대}</span>
       ${gb(p.주등급)}
       <span class="bw-val" style="color:${color}">${(p.시청률||0).toFixed(3)}%</span>
@@ -1282,6 +1284,7 @@ function renderPeriodFromDates(dates, mode) {
     <div class="bw-item" style="border-left-color:${color}">
       <span class="pill ${p.재방?'pill-r':'pill-o'}">${p.재방?'재':'본'}</span>
       <span class="bw-name">${p.프로그램명}</span>
+      ${p.날짜 ? `<span class="bw-slot" style="color:var(--muted)">${fmtMD(p.날짜)}</span>` : ''}
       <span class="bw-slot">${p.시간대}</span>
       ${gb(p.주등급)}
       <span class="bw-val" style="color:${color}">${(p.점유율||0).toFixed(3)}%</span>
@@ -1291,6 +1294,7 @@ function renderPeriodFromDates(dates, mode) {
     <div class="bw-item" style="border-left-color:${color}">
       <span class="pill ${p.재방?'pill-r':'pill-o'}">${p.재방?'재':'본'}</span>
       <span class="bw-name">${p.프로그램명}</span>
+      ${p.날짜 ? `<span class="bw-slot" style="color:var(--muted)">${fmtMD(p.날짜)}</span>` : ''}
       <span class="bw-slot">${p.시간대}</span>
       ${gb(p.주등급)}
       <span class="bw-val" style="color:${color}">${((p.몰입률||0)*100).toFixed(1)}%</span>
