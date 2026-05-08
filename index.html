@@ -1083,8 +1083,8 @@ function renderRSI(d) {
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
         ${pill} ${p.프로그램명}
       </td>
-      <td style="font-size:11px;color:var(--muted)">${p.대국자||''}</td>
-      <td style="color:var(--muted)">${p.시간대}</td>
+      <td style="font-size:11px;color:var(--muted);text-align:center">${p.대국자||''}</td>
+      <td style="color:var(--muted);text-align:center">${p.시간대}</td>
       <td><span class="badge b${g.toLowerCase()}">${g}</span></td>
       <td class="mono" style="text-align:center">${(p.시청률||0).toFixed(3)}%</td>
       ${competitors.map(k => `<td style="text-align:center">${fmtRsi(p[k])}</td>`).join('')}
