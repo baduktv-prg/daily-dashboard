@@ -808,7 +808,7 @@ const deltaArrow = delta >= 100 ? '▲' : '▼';
     <div class="card-title">프로그램별 경쟁채널 대비 점유율 <span style="font-size:10px;color:var(--muted);margin-left:4px;font-weight:400;text-transform:none">바둑TV ÷ 경쟁채널 점유율 · 1.0↑ 우위 · 1.0↓ 열위</span></div>
     <div class="rsi-table-wrap"><table class="rsi-table" id="rsi-table">
       <thead><tr>
-        <th>프로그램명</th><th>시간대</th><th>등급</th>
+        <th>프로그램명</th><th>시간대</th><th>등급</th><th>시청률</th>
         <th>K바둑</th><th>브레인TV</th><th>GOLF&PBA</th><th>빌리어즈TV</th>
       </tr></thead>
       <tbody id="rsi-body"></tbody>
@@ -1083,9 +1083,10 @@ function renderRSI(d) {
       </td>
       <td style="color:var(--muted)">${p.시간대}</td>
       <td><span class="badge b${g.toLowerCase()}">${g}</span></td>
+      <td class="mono" style="text-align:center">${(p.시청률||0).toFixed(3)}%</td>
       ${competitors.map(k => `<td style="text-align:center">${fmtRsi(p[k])}</td>`).join('')}
     </tr>`;
-  }).join('') || '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:16px">데이터 없음</td></tr>';
+  }).join('') || '<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:16px">데이터 없음</td></tr>';
 }
 
 // ══════════════════════════════════════════
