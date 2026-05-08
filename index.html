@@ -1040,8 +1040,8 @@ function renderBW(d) {
     html += `<div class="bw-item" style="border-left-color:var(--s)">
       <span class="pill ${p.재방?'pill-r':'pill-o'}">${p.재방?'재':'본'}</span>
       <span class="bw-name">${p.프로그램명}</span>
-      ${p.대국자 ? `<span class="bw-slot" style="font-size:10px">${p.대국자}</span>` : ''}
-      <span class="bw-slot">${p.시간대}</span>
+      ${p.대국자 ? `<span class="bw-slot" style="font-size:10px;text-align:center">${p.대국자}</span>` : ''}
+      <span class="bw-slot" style="text-align:center">${p.시간대}</span>
       ${gb(p.주등급)}
       <span class="bw-val" style="color:var(--s)">${(p.시청률||0).toFixed(3)}%</span>
     </div>`;
@@ -1051,8 +1051,8 @@ function renderBW(d) {
     html += `<div class="bw-item" style="border-left-color:var(--c)">
       <span class="pill ${p.재방?'pill-r':'pill-o'}">${p.재방?'재':'본'}</span>
       <span class="bw-name">${p.프로그램명}</span>
-      ${p.대국자 ? `<span class="bw-slot" style="font-size:10px">${p.대국자}</span>` : ''}
-      <span class="bw-slot">${p.시간대}</span>
+      ${p.대국자 ? `<span class="bw-slot" style="font-size:10px;text-align:center">${p.대국자}</span>` : ''}
+      <span class="bw-slot" style="text-align:center">${p.시간대}</span>
       ${gb(p.주등급)}
       <span class="bw-val" style="color:var(--c)">${(p.시청률||0).toFixed(3)}%</span>
     </div>`;
@@ -1083,8 +1083,8 @@ function renderRSI(d) {
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
         ${pill} ${p.프로그램명}
       </td>
-      <td style="font-size:11px;color:var(--muted);text-align:center">${p.대국자||''}</td>
-      <td style="color:var(--muted);text-align:center">${p.시간대}</td>
+      <td style="font-size:11px;color:var(--muted)">${p.대국자||''}</td>
+      <td style="color:var(--muted)">${p.시간대}</td>
       <td><span class="badge b${g.toLowerCase()}">${g}</span></td>
       <td class="mono" style="text-align:center">${(p.시청률||0).toFixed(3)}%</td>
       ${competitors.map(k => `<td style="text-align:center">${fmtRsi(p[k])}</td>`).join('')}
