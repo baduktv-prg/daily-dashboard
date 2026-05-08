@@ -1201,7 +1201,7 @@ function aggregatePeriod(dates) {
   const grade_counts = gradeSums;
 
   // 전체 프로그램 풀 (BEST/WORST용)
-  const allProgs = ds.flatMap(d => d.all_programs || []);
+  const allProgs = ds.flatMap((d, i) => (d.all_programs || []).map(p => ({...p, 날짜: dates[i]})));
 
   // 시청률 BEST5/WORST5
   const byRating = [...allProgs].sort((a,b) => b.시청률-a.시청률);
