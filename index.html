@@ -555,56 +555,62 @@ function buildWeeklyPicker(picker) {
   const dayNames = ['월','화','수','목','금','토','일'];
   const getDow = d => { const day = new Date(d).getDay(); return day === 0 ? 6 : day - 1; };
 
-  // 날짜를 실제 월별로 그룹핑
   const byMonth = {};
   DATES.forEach(d => {
     const m = d.slice(0, 7);
     if (!byMonth[m]) byMonth[m] = [];
     byMonth[m].push(d);
   });
+  const months = Object.keys(byMonth).sort();
+  if (pickerMonthIdx >= months.length) pickerMonthIdx = months.length - 1;
+  if (pickerMonthIdx < 0) pickerMonthIdx = 0;
 
-  let html = '';
-  for (const [month, dates] of Object.entries(byMonth).sort()) {
-    const [y, m] = month.split('-');
+  const month = months[pickerMonthIdx];
+  const dates = byMonth[month];
+  const [y, m] = month.split('-');
 
-    // 이 달에 속한 날짜들을 weekStart로 그룹핑
-    const byWeek = {};
-    dates.forEach(d => {
-      const ws = getWeekStart(d);
-      if (!byWeek[ws]) byWeek[ws] = [];
-      byWeek[ws].push(d);
+  const byWeek = {};
+  dates.forEach(d => {
+    const ws = getWeekStart(d);
+    if (!byWeek[ws]) byWeek[ws] = [];
+    byWeek[ws].push(d);
+  });
+
+  const canPrev = pickerMonthIdx > 0;
+  const canNext = pickerMonthIdx < months.length - 1;
+
+  let html = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <button onclick="navPickerMonth(-1)" style="background:${canPrev?'var(--surface2)':'transparent'};border:1px solid var(--border);color:${canPrev?'var(--text)':'var(--border)'};border-radius:5px;padding:3px 10px;cursor:${canPrev?'pointer':'default'};font-size:13px">‹</button>
+      <span style="font-size:13px;font-weight:500">${y}년 ${parseInt(m)}월</span>
+      <button onclick="navPickerMonth(1)" style="background:${canNext?'var(--surface2)':'transparent'};border:1px solid var(--border);color:${canNext?'var(--text)':'var(--border)'};border-radius:5px;padding:3px 10px;cursor:${canNext?'pointer':'default'};font-size:13px">›</button>
+    </div>
+    <div style="display:grid;grid-template-columns:26px repeat(7,1fr);gap:3px">
+      <div></div>`;
+
+  dayNames.forEach((dn, i) => {
+    const color = i === 5 ? '#5b8dee' : i === 6 ? '#e05c5c' : 'var(--muted)';
+    html += `<div style="text-align:center;font-size:10px;color:${color};padding:3px 0;font-weight:500">${dn}</div>`;
+  });
+
+  let wNum = 1;
+  for (const [ws, wDates] of Object.entries(byWeek).sort()) {
+    const isSelected = selectedWeeks.has(ws);
+    html += `<div onclick="toggleWeek('${ws}')"
+      style="background:${isSelected?'var(--accent)':'var(--surface2)'};color:${isSelected?'#fff':'var(--muted)'};font-size:10px;border-radius:3px;text-align:center;cursor:pointer;padding:5px 0;line-height:1">${wNum}</div>`;
+    const cells = Array(7).fill(null);
+    wDates.forEach(d => { cells[getDow(d)] = d; });
+    cells.forEach((d, i) => {
+      if (d) {
+        const color = i === 5 ? '#5b8dee' : i === 6 ? '#e05c5c' : 'var(--text)';
+        html += `<div class="date-btn" data-date="${d}" onclick="selectDate('${d}')" style="color:${color}">${parseInt(d.slice(8))}</div>`;
+      } else {
+        html += `<div></div>`;
+      }
     });
-
-    html += `<div class="month-group">
-      <div class="month-label">${y}년 ${parseInt(m)}월</div>
-      <div style="display:grid;grid-template-columns:26px repeat(7,1fr);gap:3px">
-        <div></div>`;
-    dayNames.forEach((dn, i) => {
-      const color = i === 5 ? '#5b8dee' : i === 6 ? '#e05c5c' : 'var(--muted)';
-      html += `<div style="text-align:center;font-size:10px;color:${color};padding:3px 0;font-weight:500">${dn}</div>`;
-    });
-
-    let wNum = 1;
-    for (const [ws, wDates] of Object.entries(byWeek).sort()) {
-      const isSelected = selectedWeeks.has(ws);
-      html += `<div onclick="toggleWeek('${ws}')"
-        style="background:${isSelected?'var(--accent)':'var(--surface2)'};color:${isSelected?'#fff':'var(--muted)'};font-size:10px;border-radius:3px;text-align:center;cursor:pointer;padding:5px 0;line-height:1">${wNum}</div>`;
-
-      // 7칸 배치 - 이 달에 속한 날짜만 표시, 나머지는 빈 칸
-      const cells = Array(7).fill(null);
-      wDates.forEach(d => { cells[getDow(d)] = d; });
-      cells.forEach((d, i) => {
-        if (d) {
-          const color = i === 5 ? '#5b8dee' : i === 6 ? '#e05c5c' : 'var(--text)';
-          html += `<div class="date-btn" data-date="${d}" onclick="selectDate('${d}')" style="color:${color}">${parseInt(d.slice(8))}</div>`;
-        } else {
-          html += `<div></div>`;
-        }
-      });
-      wNum++;
-    }
-    html += `</div></div>`;
+    wNum++;
   }
+  html += `</div>`;
   picker.innerHTML = html;
 }
 
