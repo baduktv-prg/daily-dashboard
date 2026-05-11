@@ -1517,7 +1517,7 @@ function runSearch(query) {
     ['S/A 등급', `${saPct}%`, null],
   ].map(([label, val, sub]) => `<div style="background:var(--surface2);border-radius:8px;padding:10px 16px;flex:1;min-width:110px">
     <div style="font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">${label}</div>
-    <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace">${val}${sub ? `<span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px">${sub}</span>` : ''}</div>
+    <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace;display:flex;align-items:baseline;gap:6px;flex-wrap:nowrap">${val}${sub ? `<span style="font-size:10px;color:var(--muted);font-weight:400;white-space:nowrap">${sub}</span>` : ''}</div>
   </div>`).join('');
   const gb = g => `<span class="badge b${(g||'').toLowerCase()}">${g||''}</span>`;
   const fmtMD = d => d ? `${parseInt(d.slice(5,7))}/${d.slice(8)}` : '';
