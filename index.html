@@ -410,8 +410,12 @@ body {
         oninput="runSearch(this.value)">
       <button onclick="closeSearch()" style="background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px">✕</button>
     </div>
+    <div style="padding:10px 24px;border-bottom:1px solid var(--border);display:flex;gap:8px">
+      <button id="filter-all" onclick="setSearchFilter('all')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체</button>
+      <button id="filter-rerun" onclick="setSearchFilter('rerun')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">재방</button>
+      <button id="filter-orig" onclick="setSearchFilter('orig')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">본방</button>
+    </div>
     <div id="search-kpi" style="padding:16px 24px;border-bottom:1px solid var(--border);display:none;gap:12px;flex-wrap:wrap"></div>
-    <div style="overflow-y:auto;flex:1;padding:16px 24px">
       <div id="search-results" style="color:var(--muted);font-size:13px;text-align:center;padding:32px">검색어를 입력하세요</div>
     </div>
   </div>
@@ -1426,7 +1430,24 @@ function closeSearch() {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSearch(); });
 
+let searchFilter = 'all';
+let lastSearchQuery = '';
+
+function setSearchFilter(f) {
+  searchFilter = f;
+  ['all','rerun','orig'].forEach(k => {
+    const b = document.getElementById(`filter-${k}`);
+    if (!b) return;
+    const active = k === f;
+    b.style.background = active ? 'var(--accent)' : 'transparent';
+    b.style.color = active ? '#fff' : 'var(--muted)';
+    b.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+  });
+  runSearch(lastSearchQuery);
+}
+
 function runSearch(query) {
+  lastSearchQuery = query;
   const q = query.trim();
   const resultsEl = document.getElementById('search-results');
   const kpiEl = document.getElementById('search-kpi');
@@ -1437,10 +1458,13 @@ function runSearch(query) {
   }
   const hits = [];
   for (const date of DATES) {
-    for (const p of (ALL_DATA[date].all_programs || [])) {
-      if ((p.프로그램명 && p.프로그램명.includes(q)) || (p.대국자 && p.대국자.includes(q))) {
-        hits.push({ ...p, _date: date });
-      }
+    for (const p of (ALL_DATA[date].search_programs || ALL_DATA[date].all_programs || [])) {
+      const nameMatch = p.프로그램명 && p.프로그램명.includes(q);
+      const playerMatch = p.대국자 && p.대국자.includes(q);
+      if (!nameMatch && !playerMatch) continue;
+      if (searchFilter === 'rerun' && !p.재방) continue;
+      if (searchFilter === 'orig' && p.재방) continue;
+      hits.push({ ...p, _date: p.날짜 || date });
     }
   }
   if (!hits.length) {
@@ -1464,8 +1488,12 @@ function runSearch(query) {
     <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace">${val}</div>
   </div>`).join('');
   const gb = g => `<span class="badge b${(g||'').toLowerCase()}">${g||''}</span>`;
-  const fmtMD = d => `${parseInt(d.slice(5,7))}/${d.slice(8)}`;
-  resultsEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+  const fmtMD = d => d ? `${parseInt(d.slice(5,7))}/${d.slice(8)}` : '';
+  resultsEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed">
+    <colgroup>
+      <col style="width:50px"><col style="width:220px"><col style="width:120px">
+      <col style="width:60px"><col style="width:44px"><col style="width:70px"><col style="width:70px">
+    </colgroup>
     <thead><tr style="border-bottom:1px solid var(--border)">
       <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600">날짜</th>
       <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600">프로그램명</th>
@@ -1476,11 +1504,11 @@ function runSearch(query) {
       <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600">점유율</th>
     </tr></thead>
     <tbody>${hits.map(p => `<tr class="search-row" style="border-bottom:1px solid var(--border)" onclick="goToDate('${p._date}')">
-      <td style="padding:8px;font-family:'DM Mono',monospace;color:var(--muted)">${fmtMD(p._date)}</td>
-      <td style="padding:8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+      <td style="padding:8px;font-family:'DM Mono',monospace;color:var(--muted);white-space:nowrap">${fmtMD(p._date)}</td>
+      <td style="padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
         <span class="pill ${p.재방?'pill-r':'pill-o'}">${p.재방?'재':'본'}</span> ${p.프로그램명}
       </td>
-      <td style="padding:8px;color:var(--muted);font-size:11px">${p.대국자||''}</td>
+      <td style="padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:11px">${p.대국자||''}</td>
       <td style="padding:8px;text-align:center;color:var(--muted)">${p.시간대}</td>
       <td style="padding:8px;text-align:center">${gb(p.주등급)}</td>
       <td style="padding:8px;text-align:center;font-family:'DM Mono',monospace;color:var(--s)">${(p.시청률||0).toFixed(3)}%</td>
