@@ -339,6 +339,8 @@ body {
 .kpi:nth-child(5){animation-delay:0.20s}
 .card { animation: fadeUp 0.4s ease 0.1s both; }
 
+.search-row { cursor: pointer; transition: background 0.1s; }
+.search-row:hover td { background: var(--surface2); }
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -386,6 +388,7 @@ body {
       <button id="toggle-daily" onclick="setMode('daily')" style="padding:6px 12px;font-size:12px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif">일간</button>
       <button id="toggle-weekly" onclick="setMode('weekly')" style="padding:6px 12px;font-size:12px;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);cursor:pointer;font-family:'Noto Sans KR',sans-serif">주간</button>
       <button id="toggle-monthly" onclick="setMode('monthly')" style="padding:6px 12px;font-size:12px;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);cursor:pointer;font-family:'Noto Sans KR',sans-serif">월간</button>
+      <button onclick="openSearch()" style="padding:6px 12px;font-size:12px;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);cursor:pointer;font-family:'Noto Sans KR',sans-serif">🔍 검색</button>
     </div>
     <div class="date-nav" id="date-nav">
       <button id="btn-prev">← 이전</button>
@@ -394,6 +397,25 @@ body {
         <div class="date-picker-dropdown" id="date-picker" onclick="event.stopPropagation()"></div>
       </div>
       <button id="btn-next">다음 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- 검색 모달 -->
+<div id="search-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center" onclick="closeSearch()">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;overflow:hidden" onclick="event.stopPropagation()">
+    <!-- 모달 헤더 -->
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+      <input id="search-input" type="text" placeholder="프로그램명 또는 대국자 검색 (예: 신진서, 농심신라면배)"
+        style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;font-family:'Noto Sans KR',sans-serif;outline:none"
+        oninput="runSearch(this.value)">
+      <button onclick="closeSearch()" style="background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px">✕</button>
+    </div>
+    <!-- 결과 요약 KPI -->
+    <div id="search-kpi" style="padding:16px 24px;border-bottom:1px solid var(--border);display:none;gap:16px;flex-wrap:wrap"></div>
+    <!-- 결과 테이블 -->
+    <div style="overflow-y:auto;flex:1;padding:16px 24px">
+      <div id="search-results" style="color:var(--muted);font-size:13px;text-align:center;padding:32px">검색어를 입력하세요</div>
     </div>
   </div>
 </div>
@@ -1139,7 +1161,126 @@ function renderBC(d) {
 // ══════════════════════════════════════════
 let currentMode = 'daily';
 
-function setMode(mode) {
+// ══════════════════════════════════════════
+// SEARCH
+// ══════════════════════════════════════════
+function openSearch() {
+  const modal = document.getElementById('search-modal');
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('search-input').focus(), 100);
+}
+
+function closeSearch() {
+  document.getElementById('search-modal').style.display = 'none';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSearch();
+});
+
+function runSearch(query) {
+  const q = query.trim();
+  const resultsEl = document.getElementById('search-results');
+  const kpiEl = document.getElementById('search-kpi');
+
+  if (!q || q.length < 2) {
+    resultsEl.innerHTML = '<div style="color:var(--muted);text-align:center;padding:32px">검색어를 2글자 이상 입력하세요</div>';
+    kpiEl.style.display = 'none';
+    return;
+  }
+
+  // 전체 프로그램에서 검색
+  const hits = [];
+  for (const date of DATES) {
+    const d = ALL_DATA[date];
+    for (const p of (d.all_programs || [])) {
+      const nameMatch = p.프로그램명 && p.프로그램명.includes(q);
+      const playerMatch = p.대국자 && p.대국자.includes(q);
+      if (nameMatch || playerMatch) {
+        hits.push({ ...p, _date: date });
+      }
+    }
+  }
+
+  if (!hits.length) {
+    resultsEl.innerHTML = '<div style="color:var(--muted);text-align:center;padding:32px">검색 결과가 없습니다</div>';
+    kpiEl.style.display = 'none';
+    return;
+  }
+
+  // KPI 집계
+  const ratings = hits.map(p => p.시청률).filter(v => v > 0);
+  const avgRating = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(3) : '-';
+  const maxRating = ratings.length ? Math.max(...ratings).toFixed(3) : '-';
+  const grades = hits.reduce((acc, p) => { acc[p.주등급] = (acc[p.주등급]||0)+1; return acc; }, {});
+  const saPct = hits.length ? Math.round((((grades.S||0)+(grades.A||0))/hits.length)*100) : 0;
+
+  kpiEl.style.display = 'flex';
+  kpiEl.innerHTML = [
+    ['검색 결과', `${hits.length}편`],
+    ['평균 시청률', `${avgRating}%`],
+    ['최고 시청률', `${maxRating}%`],
+    ['S/A 등급 비율', `${saPct}%`],
+  ].map(([label, val]) => `
+    <div style="background:var(--surface2);border-radius:8px;padding:10px 16px;flex:1;min-width:120px">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">${label}</div>
+      <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace">${val}</div>
+    </div>`).join('');
+
+  // 결과 테이블
+  const gb = g => `<span class="badge b${(g||'').toLowerCase()}">${g||''}</span>`;
+  const fmtMD = d => `${parseInt(d.slice(5,7))}/${d.slice(8)}`;
+
+  resultsEl.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border)">
+          <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600">날짜</th>
+          <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600">프로그램명</th>
+          <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600">대국자</th>
+          <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600">시간대</th>
+          <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600">등급</th>
+          <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600">시청률</th>
+          <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600">점유율</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${hits.map(p => `
+          <tr style="border-bottom:1px solid var(--border)" class="search-row" onclick="goToDate('${p._date}')">
+            <td style="padding:8px;font-family:'DM Mono',monospace;color:var(--muted)">${fmtMD(p._date)}</td>
+            <td style="padding:8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              <span class="pill ${p.재방?'pill-r':'pill-o'}">${p.재방?'재':'본'}</span>
+              ${p.프로그램명}
+            </td>
+            <td style="padding:8px;color:var(--muted);font-size:11px">${p.대국자||''}</td>
+            <td style="padding:8px;text-align:center;color:var(--muted)">${p.시간대}</td>
+            <td style="padding:8px;text-align:center">${gb(p.주등급)}</td>
+            <td style="padding:8px;text-align:center;font-family:'DM Mono',monospace;color:var(--s)">${(p.시청률||0).toFixed(3)}%</td>
+            <td style="padding:8px;text-align:center;font-family:'DM Mono',monospace">${(p.점유율||0).toFixed(3)}%</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function goToDate(date) {
+  closeSearch();
+  currentMode = 'daily';
+  const btns = {
+    daily: document.getElementById('toggle-daily'),
+    weekly: document.getElementById('toggle-weekly'),
+    monthly: document.getElementById('toggle-monthly'),
+  };
+  Object.entries(btns).forEach(([k, b]) => {
+    if (!b) return;
+    b.style.background = k === 'daily' ? 'var(--accent)' : 'transparent';
+    b.style.color = k === 'daily' ? '#fff' : 'var(--muted)';
+  });
+  currentIdx = DATES.indexOf(date);
+  pickerMonthIdx = [...new Set(DATES.map(d => d.slice(0,7)))].indexOf(date.slice(0,7));
+  buildPicker();
+  renderDate(date);
+}
+
   currentMode = mode;
   const btns = {
     daily:   document.getElementById('toggle-daily'),
