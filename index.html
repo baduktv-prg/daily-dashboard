@@ -1499,17 +1499,25 @@ function runSearch(query) {
   const ratings = hits.map(p => p.시청률).filter(v => v > 0);
   const avgRating = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(3) : '-';
   const maxRating = ratings.length ? Math.max(...ratings).toFixed(3) : '-';
+
+  // 가중 평균 (방영시간 기준)
+  const durations = hits.map(p => p.방영시간 || 0);
+  const totalDur = durations.reduce((a,b)=>a+b, 0);
+  const weightedAvg = totalDur > 0
+    ? (hits.reduce((s, p, i) => s + (p.시청률||0) * (durations[i]||0), 0) / totalDur).toFixed(3)
+    : avgRating;
+
   const grades = hits.reduce((acc, p) => { acc[p.주등급] = (acc[p.주등급]||0)+1; return acc; }, {});
   const saPct = hits.length ? Math.round((((grades.S||0)+(grades.A||0))/hits.length)*100) : 0;
   kpiEl.style.display = 'flex';
   kpiEl.innerHTML = [
-    ['검색 결과', `${hits.length}편`],
-    ['평균 시청률', `${avgRating}%`],
-    ['최고 시청률', `${maxRating}%`],
-    ['S/A 등급', `${saPct}%`],
-  ].map(([label, val]) => `<div style="background:var(--surface2);border-radius:8px;padding:10px 16px;flex:1;min-width:110px">
+    ['검색 결과', `${hits.length}편`, null],
+    ['평균 시청률', `${weightedAvg}%`, `단순 ${avgRating}%`],
+    ['최고 시청률', `${maxRating}%`, null],
+    ['S/A 등급', `${saPct}%`, null],
+  ].map(([label, val, sub]) => `<div style="background:var(--surface2);border-radius:8px;padding:10px 16px;flex:1;min-width:110px">
     <div style="font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">${label}</div>
-    <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace">${val}</div>
+    <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace">${val}${sub ? `<span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px">${sub}</span>` : ''}</div>
   </div>`).join('');
   const gb = g => `<span class="badge b${(g||'').toLowerCase()}">${g||''}</span>`;
   const fmtMD = d => d ? `${parseInt(d.slice(5,7))}/${d.slice(8)}` : '';
