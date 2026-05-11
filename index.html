@@ -410,10 +410,18 @@ body {
         oninput="runSearch(this.value)">
       <button onclick="closeSearch()" style="background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px">✕</button>
     </div>
-    <div style="padding:10px 24px;border-bottom:1px solid var(--border);display:flex;gap:8px">
-      <button id="filter-all" onclick="setSearchFilter('all')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체</button>
-      <button id="filter-rerun" onclick="setSearchFilter('rerun')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">재방</button>
-      <button id="filter-orig" onclick="setSearchFilter('orig')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">본방</button>
+    <div style="padding:10px 24px;border-bottom:1px solid var(--border);display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:11px;color:var(--muted)">검색 대상</span>
+        <button id="stype-prog" onclick="setSearchType('prog')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:'Noto Sans KR',sans-serif">프로그램명</button>
+        <button id="stype-player" onclick="setSearchType('player')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">대국자</button>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:11px;color:var(--muted)">방송 구분</span>
+        <button id="filter-all" onclick="setSearchFilter('all')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체</button>
+        <button id="filter-rerun" onclick="setSearchFilter('rerun')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">재방</button>
+        <button id="filter-orig" onclick="setSearchFilter('orig')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">본방</button>
+      </div>
     </div>
     <div id="search-kpi" style="padding:16px 24px;border-bottom:1px solid var(--border);display:none;gap:12px;flex-wrap:wrap"></div>
       <div id="search-results" style="color:var(--muted);font-size:13px;text-align:center;padding:32px">검색어를 입력하세요</div>
@@ -1431,7 +1439,21 @@ function closeSearch() {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSearch(); });
 
 let searchFilter = 'all';
+let searchType = 'prog';
 let lastSearchQuery = '';
+
+function setSearchType(t) {
+  searchType = t;
+  ['prog','player'].forEach(k => {
+    const b = document.getElementById(`stype-${k}`);
+    if (!b) return;
+    const active = k === t;
+    b.style.background = active ? 'var(--accent)' : 'transparent';
+    b.style.color = active ? '#fff' : 'var(--muted)';
+    b.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+  });
+  runSearch(lastSearchQuery);
+}
 
 function setSearchFilter(f) {
   searchFilter = f;
@@ -1461,7 +1483,9 @@ function runSearch(query) {
     for (const p of (ALL_DATA[date].search_programs || ALL_DATA[date].all_programs || [])) {
       const nameMatch = p.프로그램명 && p.프로그램명.includes(q);
       const playerMatch = p.대국자 && p.대국자.includes(q);
-      if (!nameMatch && !playerMatch) continue;
+      if (searchType === 'prog' && !nameMatch) continue;
+      if (searchType === 'player' && !playerMatch) continue;
+      if (searchType === 'all' && !nameMatch && !playerMatch) continue;
       if (searchFilter === 'rerun' && !p.재방) continue;
       if (searchFilter === 'orig' && p.재방) continue;
       hits.push({ ...p, _date: p.날짜 || date });
