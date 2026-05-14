@@ -1452,10 +1452,9 @@ function toggleHitSelection(idx) {
   } else {
     selectedHitIndices.add(idx);
   }
-  renderSelectedKpi();
-  // 체크박스 시각 업데이트
   const cb = document.getElementById(`cb-${idx}`);
   if (cb) cb.checked = selectedHitIndices.has(idx);
+  renderSelectedKpi();
 }
 
 function renderSelectedKpi() {
@@ -1571,28 +1570,28 @@ function runSearch(query) {
       <col style="width:60px"><col style="width:44px"><col style="width:70px"><col style="width:70px">
     </colgroup>
     <thead><tr style="border-bottom:1px solid var(--border)">
-      <th style="padding:8px;width:32px"></th>
-      <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600">날짜</th>
+      <th style="padding:8px;width:28px"></th>
+      <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600;width:44px">날짜</th>
       <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600">프로그램명</th>
       <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600">대국자</th>
-      <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600">시간대</th>
-      <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600">등급</th>
-      <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600">시청률</th>
-      <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600">점유율</th>
+      <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600;width:60px">시간대</th>
+      <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600;width:40px">등급</th>
+      <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600;width:68px">시청률</th>
+      <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600;width:68px">점유율</th>
     </tr></thead>
-    <tbody>${hits.map((p, idx) => `<tr class="search-row" style="border-bottom:1px solid var(--border)">
-      <td style="padding:8px;text-align:center" onclick="event.stopPropagation()">
-        <input type="checkbox" id="cb-${idx}" class="hit-cb" onchange="toggleHitSelection(${idx})" style="cursor:pointer">
+    <tbody>${hits.map((p, idx) => `<tr class="search-row" style="border-bottom:1px solid var(--border);cursor:pointer" onclick="toggleHitSelection(${idx})">
+      <td style="padding:8px;text-align:center" onclick="event.stopPropagation();toggleHitSelection(${idx})">
+        <input type="checkbox" id="cb-${idx}" class="hit-cb" style="cursor:pointer" onclick="event.stopPropagation()" onchange="toggleHitSelection(${idx})">
       </td>
-      <td style="padding:8px;font-family:'DM Mono',monospace;color:var(--muted);white-space:nowrap" onclick="goToDate('${p._date}')">${fmtMD(p._date)}</td>
-      <td style="padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="goToDate('${p._date}')">
+      <td style="padding:8px;font-family:'DM Mono',monospace;color:var(--muted);white-space:nowrap;font-size:11px">${fmtMD(p._date)}</td>
+      <td style="padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
         <span class="pill ${p.재방?'pill-r':'pill-o'}">${p.재방?'재':'본'}</span> ${p.프로그램명}
       </td>
-      <td style="padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:11px" onclick="goToDate('${p._date}')">${p.대국자||''}</td>
-      <td style="padding:8px;text-align:center;color:var(--muted)" onclick="goToDate('${p._date}')">${p.시간대}</td>
-      <td style="padding:8px;text-align:center" onclick="goToDate('${p._date}')">${gb(p.주등급)}</td>
-      <td style="padding:8px;text-align:center;font-family:'DM Mono',monospace;color:var(--s)" onclick="goToDate('${p._date}')">${(p.시청률||0).toFixed(3)}%</td>
-      <td style="padding:8px;text-align:center;font-family:'DM Mono',monospace" onclick="goToDate('${p._date}')">${(p.점유율||0).toFixed(3)}%</td>
+      <td style="padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:11px">${p.대국자||''}</td>
+      <td style="padding:8px;text-align:center;color:var(--muted);font-size:11px">${p.시간대}</td>
+      <td style="padding:8px;text-align:center">${gb(p.주등급)}</td>
+      <td style="padding:8px;text-align:center;font-family:'DM Mono',monospace;color:var(--s)">${(p.시청률||0).toFixed(3)}%</td>
+      <td style="padding:8px;text-align:center;font-family:'DM Mono',monospace">${(p.점유율||0).toFixed(3)}%</td>
     </tr>`).join('')}</tbody>
   </table>`;
 }
