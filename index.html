@@ -424,6 +424,8 @@ body {
       </div>
     </div>
     <div id="search-kpi" style="padding:16px 24px;border-bottom:1px solid var(--border);display:none;gap:12px;flex-wrap:wrap"></div>
+    <div id="selected-kpi" style="padding:10px 24px;border-bottom:1px solid var(--border);display:none;gap:12px;flex-wrap:wrap;background:var(--surface2)"></div>
+    <div style="overflow-y:auto;flex:1;padding:0 24px 16px">
       <div id="search-results" style="color:var(--muted);font-size:13px;text-align:center;padding:32px">검색어를 입력하세요</div>
     </div>
   </div>
@@ -1441,6 +1443,45 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSearch(
 let searchFilter = 'all';
 let searchType = 'prog';
 let lastSearchQuery = '';
+let currentHits = [];
+let selectedHitIndices = new Set();
+
+function toggleHitSelection(idx) {
+  if (selectedHitIndices.has(idx)) {
+    selectedHitIndices.delete(idx);
+  } else {
+    selectedHitIndices.add(idx);
+  }
+  renderSelectedKpi();
+  // 체크박스 시각 업데이트
+  const cb = document.getElementById(`cb-${idx}`);
+  if (cb) cb.checked = selectedHitIndices.has(idx);
+}
+
+function renderSelectedKpi() {
+  const kpi = document.getElementById('selected-kpi');
+  if (selectedHitIndices.size === 0) {
+    kpi.style.display = 'none';
+    return;
+  }
+  const selected = [...selectedHitIndices].map(i => currentHits[i]);
+  const ratings = selected.map(p => p.시청률).filter(v => v > 0);
+  const avgR = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(3) : '-';
+  const durs = selected.map(p => p.방영시간 || 0);
+  const totalDur = durs.reduce((a,b)=>a+b,0);
+  const wAvg = totalDur > 0
+    ? (selected.reduce((s,p,i)=>s+(p.시청률||0)*(durs[i]||0),0)/totalDur).toFixed(3)
+    : avgR;
+
+  kpi.style.display = 'flex';
+  kpi.innerHTML = `<span style="font-size:11px;color:var(--muted);align-self:center">선택 ${selected.length}편</span>` + [
+    ['가중 평균 시청률', `${wAvg}%`, `단순 ${avgR}%`],
+    ['최고 시청률', `${Math.max(...ratings).toFixed(3)}%`, null],
+  ].map(([label, val, sub]) => `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;min-width:100px">
+    <div style="font-size:10px;color:var(--muted);margin-bottom:2px">${label}</div>
+    <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace">${val}${sub?`<span style="font-size:10px;color:var(--muted);margin-left:4px">${sub}</span>`:''}</div>
+  </div>`).join('') + `<button onclick="selectedHitIndices.clear();renderSelectedKpi();document.querySelectorAll('.hit-cb').forEach(c=>c.checked=false)" style="margin-left:auto;font-size:11px;color:var(--muted);background:transparent;border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer">선택 해제</button>`;
+}
 
 function setSearchType(t) {
   searchType = t;
@@ -1496,6 +1537,9 @@ function runSearch(query) {
     kpiEl.style.display = 'none';
     return;
   }
+  currentHits = hits;
+  selectedHitIndices.clear();
+  document.getElementById('selected-kpi').style.display = 'none';
   const ratings = hits.map(p => p.시청률).filter(v => v > 0);
   const avgRating = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(3) : '-';
   const maxRating = ratings.length ? Math.max(...ratings).toFixed(3) : '-';
@@ -1527,6 +1571,7 @@ function runSearch(query) {
       <col style="width:60px"><col style="width:44px"><col style="width:70px"><col style="width:70px">
     </colgroup>
     <thead><tr style="border-bottom:1px solid var(--border)">
+      <th style="padding:8px;width:32px"></th>
       <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600">날짜</th>
       <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600">프로그램명</th>
       <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600">대국자</th>
@@ -1535,16 +1580,19 @@ function runSearch(query) {
       <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600">시청률</th>
       <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600">점유율</th>
     </tr></thead>
-    <tbody>${hits.map(p => `<tr class="search-row" style="border-bottom:1px solid var(--border)" onclick="goToDate('${p._date}')">
-      <td style="padding:8px;font-family:'DM Mono',monospace;color:var(--muted);white-space:nowrap">${fmtMD(p._date)}</td>
-      <td style="padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+    <tbody>${hits.map((p, idx) => `<tr class="search-row" style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px;text-align:center" onclick="event.stopPropagation()">
+        <input type="checkbox" id="cb-${idx}" class="hit-cb" onchange="toggleHitSelection(${idx})" style="cursor:pointer">
+      </td>
+      <td style="padding:8px;font-family:'DM Mono',monospace;color:var(--muted);white-space:nowrap" onclick="goToDate('${p._date}')">${fmtMD(p._date)}</td>
+      <td style="padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="goToDate('${p._date}')">
         <span class="pill ${p.재방?'pill-r':'pill-o'}">${p.재방?'재':'본'}</span> ${p.프로그램명}
       </td>
-      <td style="padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:11px">${p.대국자||''}</td>
-      <td style="padding:8px;text-align:center;color:var(--muted)">${p.시간대}</td>
-      <td style="padding:8px;text-align:center">${gb(p.주등급)}</td>
-      <td style="padding:8px;text-align:center;font-family:'DM Mono',monospace;color:var(--s)">${(p.시청률||0).toFixed(3)}%</td>
-      <td style="padding:8px;text-align:center;font-family:'DM Mono',monospace">${(p.점유율||0).toFixed(3)}%</td>
+      <td style="padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:11px" onclick="goToDate('${p._date}')">${p.대국자||''}</td>
+      <td style="padding:8px;text-align:center;color:var(--muted)" onclick="goToDate('${p._date}')">${p.시간대}</td>
+      <td style="padding:8px;text-align:center" onclick="goToDate('${p._date}')">${gb(p.주등급)}</td>
+      <td style="padding:8px;text-align:center;font-family:'DM Mono',monospace;color:var(--s)" onclick="goToDate('${p._date}')">${(p.시청률||0).toFixed(3)}%</td>
+      <td style="padding:8px;text-align:center;font-family:'DM Mono',monospace" onclick="goToDate('${p._date}')">${(p.점유율||0).toFixed(3)}%</td>
     </tr>`).join('')}</tbody>
   </table>`;
 }
