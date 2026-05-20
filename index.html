@@ -815,12 +815,12 @@ const deltaArrow = delta >= 100 ? '▲' : '▼';
       <div class="kpi-sub">S: ${d.grade_counts['S']||0}편 · A: ${d.grade_counts['A']||0}편</div>
     </div>
     <div class="kpi" style="--kc:var(--rerun)">
-      <div class="kpi-label">프라임 시청률</div>
+      <div class="kpi-label">프라임 타임 시청률</div>
       <div class="kpi-value mono">${d.slot_rating['프라임'] != null ? d.slot_rating['프라임'].toFixed(3) : '-'}<span style="font-size:14px;font-weight:400">%</span></div>
       <div class="kpi-sub">점유율 ${d.slot_share['프라임'] != null ? d.slot_share['프라임'].toFixed(3) : '-'}%</div>
     </div>
     <div class="kpi" style="--kc:var(--c)">
-      <div class="kpi-label">레저채널 내 점유율</div>
+      <div class="kpi-label">경쟁채널 내 점유율</div>
       <div class="kpi-value mono">${d.ccs != null ? (d.ccs*100).toFixed(2) : '-'}<span style="font-size:14px;font-weight:400">${d.ccs != null ? '%' : '--'}</span></div>
       <div class="kpi-sub">자사 ÷ (자사+경쟁채널) 점유율</div>
     </div>
