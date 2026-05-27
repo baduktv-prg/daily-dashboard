@@ -422,6 +422,14 @@ body {
         <button id="filter-rerun" onclick="setSearchFilter('rerun')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">재방</button>
         <button id="filter-orig" onclick="setSearchFilter('orig')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">본방</button>
       </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:11px;color:var(--muted)">시간대</span>
+        <button id="slot-all" onclick="setSlotFilter('all')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체</button>
+        <button id="slot-새벽" onclick="setSlotFilter('새벽')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">새벽</button>
+        <button id="slot-오전" onclick="setSlotFilter('오전')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">오전</button>
+        <button id="slot-준프라임" onclick="setSlotFilter('준프라임')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">준프라임</button>
+        <button id="slot-프라임" onclick="setSlotFilter('프라임')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">프라임</button>
+      </div>
     </div>
     <div id="search-kpi" style="padding:16px 24px;border-bottom:1px solid var(--border);display:none;gap:12px;flex-wrap:wrap"></div>
     <div id="selected-kpi" style="padding:10px 24px;border-bottom:1px solid var(--border);display:none;gap:12px;flex-wrap:wrap;background:var(--surface2)"></div>
@@ -1445,6 +1453,28 @@ let searchType = 'prog';
 let lastSearchQuery = '';
 let currentHits = [];
 let selectedHitIndices = new Set();
+let slotFilter = 'all';
+let sortKey = 'date';
+let sortAsc = false;
+
+function setSlotFilter(s) {
+  slotFilter = s;
+  ['all','새벽','오전','준프라임','프라임'].forEach(k => {
+    const b = document.getElementById(`slot-${k}`);
+    if (!b) return;
+    const active = k === s;
+    b.style.background = active ? 'var(--accent)' : 'transparent';
+    b.style.color = active ? '#fff' : 'var(--muted)';
+    b.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+  });
+  runSearch(lastSearchQuery);
+}
+
+function setSort(key) {
+  if (sortKey === key) sortAsc = !sortAsc;
+  else { sortKey = key; sortAsc = key === 'date'; }
+  runSearch(lastSearchQuery);
+}
 
 function toggleHitSelection(idx) {
   if (selectedHitIndices.has(idx)) {
@@ -1528,6 +1558,7 @@ function runSearch(query) {
       if (searchType === 'all' && !nameMatch && !playerMatch) continue;
       if (searchFilter === 'rerun' && !p.재방) continue;
       if (searchFilter === 'orig' && p.재방) continue;
+      if (slotFilter !== 'all' && p.시간대 !== slotFilter) continue;
       hits.push({ ...p, _date: p.날짜 || date });
     }
   }
@@ -1537,6 +1568,17 @@ function runSearch(query) {
     return;
   }
   currentHits = hits;
+
+  // 정렬
+  hits.sort((a, b) => {
+    let va, vb;
+    if (sortKey === 'date') { va = a._date; vb = b._date; }
+    else { va = a.시청률 || 0; vb = b.시청률 || 0; }
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ? 1 : -1;
+    return 0;
+  });
+
   selectedHitIndices.clear();
   document.getElementById('selected-kpi').style.display = 'none';
   const ratings = hits.map(p => p.시청률).filter(v => v > 0);
@@ -1571,12 +1613,12 @@ function runSearch(query) {
     </colgroup>
     <thead><tr style="border-bottom:1px solid var(--border)">
       <th style="padding:8px;width:28px"></th>
-      <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600;width:44px">날짜</th>
+      <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600;width:44px;cursor:pointer" onclick="setSort('date')">날짜${sortKey==='date'?(sortAsc?' ↑':' ↓'):''}</th>
       <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600">프로그램명</th>
       <th style="padding:8px;text-align:left;color:var(--muted);font-weight:600">대국자</th>
       <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600;width:60px">시간대</th>
       <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600;width:40px">등급</th>
-      <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600;width:68px">시청률</th>
+      <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600;width:68px;cursor:pointer" onclick="setSort('rating')">시청률${sortKey==='rating'?(sortAsc?' ↑':' ↓'):''}</th>
       <th style="padding:8px;text-align:center;color:var(--muted);font-weight:600;width:68px">점유율</th>
     </tr></thead>
     <tbody>${hits.map((p, idx) => `<tr class="search-row" style="border-bottom:1px solid var(--border);cursor:pointer" onclick="toggleHitSelection(${idx})">
