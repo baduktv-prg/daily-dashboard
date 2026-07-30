@@ -470,8 +470,10 @@ body {
     </div>
     <div id="search-kpi" style="padding:16px 24px;border-bottom:1px solid var(--border);display:none;gap:12px;flex-wrap:wrap"></div>
     <div id="selected-kpi" style="padding:10px 24px;border-bottom:1px solid var(--border);display:none;gap:12px;flex-wrap:wrap;background:var(--surface2)"></div>
-    <div style="overflow-y:auto;flex:1;padding:0 24px 16px">
+    <div style="overflow-y:auto;flex:1;padding:0 16px 16px">
+      <div style="overflow-x:auto">
       <div id="search-results" style="color:var(--muted);font-size:13px;text-align:center;padding:32px">검색어를 입력하세요</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1647,7 +1649,7 @@ function runSearch(query) {
   </div>`).join('');
   const gb = g => `<span class="badge b${(g||'').toLowerCase()}">${g||''}</span>`;
   const fmtMD = d => d ? `${parseInt(d.slice(5,7))}/${d.slice(8)}` : '';
-  resultsEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed">
+  resultsEl.innerHTML = `<table style="width:100%;min-width:520px;border-collapse:collapse;font-size:12px;table-layout:fixed">
     <colgroup>
       <col style="width:28px"><col style="width:46px"><col style="width:auto"><col style="width:110px">
       <col style="width:58px"><col style="width:40px"><col style="width:68px"><col style="width:68px">
