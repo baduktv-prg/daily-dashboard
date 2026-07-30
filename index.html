@@ -359,20 +359,47 @@ body {
   .row3 { grid-template-columns: 1fr; }
   .kpi-value { font-size: 22px; }
   .date-display { min-width: 110px; font-size: 13px; }
+  .topbar-right { flex-wrap: wrap; gap: 8px; }
 }
 @media (max-width: 600px) {
   .kpi-row { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .kpi { padding: 14px 14px; }
+  .kpi-row .kpi:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .kpi { padding: 14px 12px; }
   .kpi-value { font-size: 20px; }
-  .card { padding: 16px 14px; }
+  .kpi-label { font-size: 10px; }
+  .kpi-sub { font-size: 10px; }
+  .card { padding: 16px 12px; }
+  .card-title { font-size: 12px; }
   .logo { font-size: 13px; }
   .theme-toggle { font-size: 11px; padding: 5px 8px; }
+  /* 테이블 가로 스크롤 */
+  .rsi-table-wrap { overflow-x: auto; }
+  .rsi-table { min-width: 560px; }
+  .bc-table-wrap { overflow-x: auto; }
+  .bc-table { min-width: 480px; }
+  /* 일부 열 숨기기 */
   .bc-table th:nth-child(7),
   .bc-table td:nth-child(7),
   .bc-table th:nth-child(8),
   .bc-table td:nth-child(8) { display: none; }
-  .slot-bars {gap: 18px;},
-  .track {height: 30px;}
+  .slot-bars { gap: 14px; }
+  .track { height: 26px; }
+  /* BEST/WORST 폰트 */
+  .bw-name { font-size: 11px; }
+  .bw-val { font-size: 12px; }
+  .bw-slot { font-size: 10px; }
+  /* 날짜 네비 */
+  .date-nav { gap: 4px; }
+  .date-display { min-width: 110px; font-size: 11px; white-space: nowrap; }
+  /* 토글 버튼 */
+  .topbar-right > div button { padding: 5px 9px; font-size: 11px; }
+}
+@media (max-width: 400px) {
+  .kpi-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .kpi { padding: 12px 10px; }
+  .kpi-value { font-size: 18px; }
+  .main { padding: 14px 10px; gap: 12px; }
+  .card { padding: 14px 10px; }
 }
 </style>
 </head>
@@ -402,33 +429,43 @@ body {
 </div>
 
 <!-- 검색 모달 -->
-<div id="search-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center" onclick="closeSearch()">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;overflow:hidden" onclick="event.stopPropagation()">
+<div id="search-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto" onclick="closeSearch()">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:min(700px,100%);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;margin:auto" onclick="event.stopPropagation()">
     <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
       <input id="search-input" type="text" placeholder="프로그램명 또는 대국자 검색 (예: 신진서, 농심신라면배)"
         style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;font-family:'Noto Sans KR',sans-serif;outline:none"
         oninput="runSearch(this.value)">
       <button onclick="closeSearch()" style="background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px">✕</button>
     </div>
-    <div style="padding:10px 24px;border-bottom:1px solid var(--border);display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-      <div style="display:flex;gap:6px;align-items:center">
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <span style="font-size:11px;color:var(--muted)">검색 대상</span>
         <button id="stype-prog" onclick="setSearchType('prog')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:'Noto Sans KR',sans-serif">프로그램명</button>
         <button id="stype-player" onclick="setSearchType('player')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">대국자</button>
       </div>
-      <div style="display:flex;gap:6px;align-items:center">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <span style="font-size:11px;color:var(--muted)">방송 구분</span>
         <button id="filter-all" onclick="setSearchFilter('all')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체</button>
         <button id="filter-rerun" onclick="setSearchFilter('rerun')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">재방</button>
         <button id="filter-orig" onclick="setSearchFilter('orig')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">본방</button>
       </div>
-      <div style="display:flex;gap:6px;align-items:center">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <span style="font-size:11px;color:var(--muted)">시간대</span>
         <button id="slot-all" onclick="setSlotFilter('all')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체</button>
         <button id="slot-새벽" onclick="setSlotFilter('새벽')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">새벽</button>
         <button id="slot-오전" onclick="setSlotFilter('오전')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">오전</button>
         <button id="slot-준프라임" onclick="setSlotFilter('준프라임')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">준프라임</button>
         <button id="slot-프라임" onclick="setSlotFilter('프라임')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">프라임</button>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--muted)">기간</span>
+        <input type="date" id="date-from" onchange="runSearch(lastSearchQuery)"
+          style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Noto Sans KR',sans-serif">
+        <span style="font-size:11px;color:var(--muted)">~</span>
+        <input type="date" id="date-to" onchange="runSearch(lastSearchQuery)"
+          style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Noto Sans KR',sans-serif">
+        <button onclick="document.getElementById('date-from').value='';document.getElementById('date-to').value='';runSearch(lastSearchQuery)"
+          style="padding:4px 8px;font-size:11px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer">초기화</button>
       </div>
     </div>
     <div id="search-kpi" style="padding:16px 24px;border-bottom:1px solid var(--border);display:none;gap:12px;flex-wrap:wrap"></div>
@@ -1559,6 +1596,10 @@ function runSearch(query) {
       if (searchFilter === 'rerun' && !p.재방) continue;
       if (searchFilter === 'orig' && p.재방) continue;
       if (slotFilter !== 'all' && p.시간대 !== slotFilter) continue;
+      const dateFrom = document.getElementById('date-from')?.value;
+      const dateTo = document.getElementById('date-to')?.value;
+      if (dateFrom && date < dateFrom) continue;
+      if (dateTo && date > dateTo) continue;
       hits.push({ ...p, _date: p.날짜 || date });
     }
   }
