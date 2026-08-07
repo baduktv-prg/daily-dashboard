@@ -455,7 +455,6 @@ body {
         <button id="slot-all" onclick="setSlotFilter('all')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체</button>
         <button id="slot-새벽" onclick="setSlotFilter('새벽')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">새벽</button>
         <button id="slot-오전" onclick="setSlotFilter('오전')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">오전</button>
-        <button id="slot-준프라임" onclick="setSlotFilter('준프라임')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">준프라임</button>
         <button id="slot-프라임" onclick="setSlotFilter('프라임')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">프라임</button>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -948,7 +947,7 @@ const deltaArrow = delta >= 100 ? '▲' : '▼';
 // SLOT BARS
 // ══════════════════════════════════════════
 function renderSlotBars(d) {
-  const slots  = ['새벽','오전','준프라임','프라임'];
+  const slots  = ['새벽','오전','프라임'];
   const colors = ['#5b8dee','#9b7fe8','#3ecf8e','#f5c842'];
   const maxR = Math.max(...slots.map(s => d.slot_rating[s] || 0)) * 1.1 || 1;
   const maxS = Math.max(...slots.map(s => d.slot_share[s]  || 0)) * 1.1 || 1;
@@ -1288,7 +1287,7 @@ function aggregatePeriod(dates) {
   const saPct = totalGrade ? (saCount/totalGrade*100).toFixed(0) : 0;
 
   // 시간대별 평균
-  const slots = ['새벽','오전','준프라임','프라임'];
+  const slots = ['새벽','오전','프라임'];
   const slot_rating = {}, slot_share = {};
   slots.forEach(sl => {
     const vals = ds.map(d => d.slot_rating[sl]).filter(v=>v!=null);
@@ -1504,7 +1503,7 @@ let sortAsc = false;
 
 function setSlotFilter(s) {
   slotFilter = s;
-  ['all','새벽','오전','준프라임','프라임'].forEach(k => {
+  ['all','새벽','오전','프라임'].forEach(k => {
     const b = document.getElementById(`slot-${k}`);
     if (!b) return;
     const active = k === s;
