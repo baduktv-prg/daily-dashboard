@@ -448,7 +448,6 @@ body {
         <span style="font-size:11px;color:var(--muted)">방송 구분</span>
         <button id="filter-all" onclick="setSearchFilter('all')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:'Noto Sans KR',sans-serif">전체</button>
         <button id="filter-rerun" onclick="setSearchFilter('rerun')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">재방</button>
-        <button id="filter-live" onclick="setSearchFilter('live')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">생방</button>
         <button id="filter-orig" onclick="setSearchFilter('orig')" style="padding:4px 12px;font-size:12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans KR',sans-serif">본방</button>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -820,7 +819,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ══════════════════════════════════════════
 // MAIN RENDER
 // ══════════════════════════════════════════
-function pillStr(p, short=true) {
+function mkPill(p, short=true) {
   const g = p.방송구분 || (p.재방 ? '재방' : '본방');
   if (g === '생방') return `<span class="pill pill-l">${short?'생':'생방'}</span>`;
   if (g === '재방') return `<span class="pill pill-r">${short?'재':'재방'}</span>`;
@@ -1078,7 +1077,7 @@ function renderBubble(d) {
     const cx = toX(p['점유율'] || 0);
     const cy = toY(p['도달률'] || 0);
     const cr = toR(p['시청률'] || 0);
-    const col = p['방송구분']==='생방' ? '#e6a800' : p['재방'] ? rerunColor : origColor;
+    const col = p['재방'] ? rerunColor : origColor;
     html += `<circle cx="${cx}" cy="${cy}" r="${cr}"
       fill="${col}33" stroke="${col}" stroke-width="1.5"
       class="bubble" data-idx="${i}" style="cursor:pointer;transition:r 0.15s"/>`;
@@ -1094,7 +1093,7 @@ function renderBubble(d) {
       tooltip.innerHTML = `
         <div style="font-weight:600;margin-bottom:4px;font-size:11px">${p['프로그램명']}</div>
         <div style="color:#5a6070">${p['시간대']} · <span class="badge b${g.toLowerCase()}">${g}</span>
-          · <span class="pill ${p['방송구분']==='생방'?'pill-l':p['재방']?'pill-r':'pill-o'}">${p['방송구분']||(p['재방']?'재방':'본방')}</span></div>
+          · ${mkPill(p, false)}</div>
         <div style="margin-top:6px">시청률 <span class="mono">${(p['시청률']||0).toFixed(3)}%</span></div>
         <div>점유율 <span class="mono">${(p['점유율']||0).toFixed(3)}%</span></div>
         <div>도달률 <span class="mono">${((p['도달률']||0)*100).toFixed(1)}%</span></div>`;
@@ -1145,7 +1144,7 @@ function renderBW(d) {
   html += '<div class="bw-list">';
   (d.best || []).forEach(p => {
     html += `<div class="bw-item" style="border-left-color:var(--s)">
-      <span class="pill ${p.방송구분==='생방'?'pill-l':p.재방?'pill-r':'pill-o'}">${p.방송구분==='생방'?'생':p.재방?'재':'본'}</span>
+      ${mkPill(p)}
       <span class="bw-name">${p.프로그램명}</span>
       ${p.대국자 ? `<span class="bw-slot" style="font-size:10px;text-align:center">${p.대국자}</span>` : ''}
       <span class="bw-slot" style="text-align:center">${p.시간대}</span>
@@ -1156,7 +1155,7 @@ function renderBW(d) {
   html += '</div><div style="font-size:10px;color:var(--muted);margin:14px 0 8px;letter-spacing:0.5px">▼ 시청률 WORST</div><div class="bw-list">';
   (d.worst || []).forEach(p => {
     html += `<div class="bw-item" style="border-left-color:var(--c)">
-      <span class="pill ${p.방송구분==='생방'?'pill-l':p.재방?'pill-r':'pill-o'}">${p.방송구분==='생방'?'생':p.재방?'재':'본'}</span>
+      ${mkPill(p)}
       <span class="bw-name">${p.프로그램명}</span>
       ${p.대국자 ? `<span class="bw-slot" style="font-size:10px;text-align:center">${p.대국자}</span>` : ''}
       <span class="bw-slot" style="text-align:center">${p.시간대}</span>
@@ -1183,8 +1182,7 @@ function renderRSI(d) {
 
   document.getElementById('rsi-body').innerHTML = progs.map(p => {
     const g = p.주등급 || '';
-    const pill = p.재방
-      ? p.방송구분==='생방'?`<span class="pill pill-l">생방</span>`:p.재방?`<span class="pill pill-r">재방</span>`:`<span class="pill pill-o">본방</span>`;
+    const pill = mkPill(p, false);
     return `<tr>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
         ${pill} ${p.프로그램명}
@@ -1212,7 +1210,7 @@ function renderBC(d) {
     const g = p.주등급 || '';
     return `<tr>
       <td>${p.프로그램명}</td>
-      <td><span class="pill ${p.방송구분==='생방'?'pill-l':p.재방?'pill-r':'pill-o'}">${p.방송구분||(p.재방?'재방':'본방')}</span></td>
+      <td>${mkPill(p, false)}</td>
       <td style="color:var(--muted)">${p.시간대}</td>
       <td><span class="badge b${g.toLowerCase()}">${g}</span></td>
       <td class="mono">${(p.시청률||0).toFixed(3)}%</td>
@@ -1382,7 +1380,7 @@ function renderPeriodFromDates(dates, mode) {
   const fmtMD = d => d ? `${parseInt(d.slice(5,7))}/${d.slice(8)}` : '';
   const bwRows = (list, color) => list.map(p => `
     <div class="bw-item" style="border-left-color:${color}">
-      <span class="pill ${p.방송구분==='생방'?'pill-l':p.재방?'pill-r':'pill-o'}">${p.방송구분==='생방'?'생':p.재방?'재':'본'}</span>
+      ${mkPill(p)}
       <span class="bw-name">${p.프로그램명}</span>
       ${p.날짜 ? `<span class="bw-slot" style="color:var(--muted)">${fmtMD(p.날짜)}</span>` : ''}
       <span class="bw-slot">${p.시간대}</span>
@@ -1392,7 +1390,7 @@ function renderPeriodFromDates(dates, mode) {
 
   const shareRows = (list, color) => list.map(p => `
     <div class="bw-item" style="border-left-color:${color}">
-      <span class="pill ${p.방송구분==='생방'?'pill-l':p.재방?'pill-r':'pill-o'}">${p.방송구분==='생방'?'생':p.재방?'재':'본'}</span>
+      ${mkPill(p)}
       <span class="bw-name">${p.프로그램명}</span>
       ${p.날짜 ? `<span class="bw-slot" style="color:var(--muted)">${fmtMD(p.날짜)}</span>` : ''}
       <span class="bw-slot">${p.시간대}</span>
@@ -1402,7 +1400,7 @@ function renderPeriodFromDates(dates, mode) {
 
   const engRows = (list, color) => list.map(p => `
     <div class="bw-item" style="border-left-color:${color}">
-      <span class="pill ${p.방송구분==='생방'?'pill-l':p.재방?'pill-r':'pill-o'}">${p.방송구분==='생방'?'생':p.재방?'재':'본'}</span>
+      ${mkPill(p)}
       <span class="bw-name">${p.프로그램명}</span>
       ${p.날짜 ? `<span class="bw-slot" style="color:var(--muted)">${fmtMD(p.날짜)}</span>` : ''}
       <span class="bw-slot">${p.시간대}</span>
@@ -1574,7 +1572,7 @@ function setSearchType(t) {
 
 function setSearchFilter(f) {
   searchFilter = f;
-  ['all','rerun','live','orig'].forEach(k => {
+  ['all','rerun','orig'].forEach(k => {
     const b = document.getElementById(`filter-${k}`);
     if (!b) return;
     const active = k === f;
@@ -1603,9 +1601,8 @@ function runSearch(query) {
       if (searchType === 'prog' && !nameMatch) continue;
       if (searchType === 'player' && !playerMatch) continue;
       if (searchType === 'all' && !nameMatch && !playerMatch) continue;
-      if (searchFilter === 'rerun' && p.방송구분 !== '재방') continue;
-      if (searchFilter === 'live' && p.방송구분 !== '생방') continue;
-      if (searchFilter === 'orig' && p.방송구분 !== '본방') continue;
+      if (searchFilter === 'rerun' && !p.재방) continue;
+      if (searchFilter === 'orig' && p.재방) continue;
       if (slotFilter !== 'all' && p.시간대 !== slotFilter) continue;
       const dateFrom = document.getElementById('date-from')?.value;
       const dateTo = document.getElementById('date-to')?.value;
@@ -1679,7 +1676,7 @@ function runSearch(query) {
       </td>
       <td style="padding:8px;font-family:'DM Mono',monospace;color:var(--muted);white-space:nowrap;font-size:11px">${fmtMD(p._date)}</td>
       <td style="padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.프로그램명}">
-        <span class="pill ${p.방송구분==='생방'?'pill-l':p.재방?'pill-r':'pill-o'}">${p.방송구분==='생방'?'생':p.재방?'재':'본'}</span> ${p.프로그램명}
+        ${mkPill(p)} ${p.프로그램명}
       </td>
       <td style="padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:11px" title="${p.대국자||''}">${p.대국자||''}</td>
       <td style="padding:8px;text-align:center;color:var(--muted);font-size:11px">${p.시간대}</td>
