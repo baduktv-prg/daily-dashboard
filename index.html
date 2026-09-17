@@ -433,7 +433,7 @@ body {
 <div id="search-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto" onclick="closeSearch()">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;width:min(700px,100%);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;margin:auto" onclick="event.stopPropagation()">
     <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
-      <input id="search-input" type="text" placeholder="프로그램명 또는 대국자 검색 (예: 신진서, 농심신라면배)"
+      <input id="search-input" type="text" placeholder='검색어 입력 · "정확한문구" · -제외어 (예: 농심 -하이라이트)'
         style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 14px;font-size:14px;font-family:'Noto Sans KR',sans-serif;outline:none"
         oninput="runSearch(this.value)">
       <button onclick="closeSearch()" style="background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px">✕</button>
@@ -1582,6 +1582,27 @@ function setSearchFilter(f) {
   runSearch(lastSearchQuery);
 }
 
+function parseQuery(query) {
+  // "따옴표" → 정확한 문구, -제외어 파싱
+  const exact = [];
+  const excludes = [];
+  const includes = [];
+
+  // "..." 추출
+  const exactMatches = query.match(/"([^"]+)"/g) || [];
+  exactMatches.forEach(m => exact.push(m.slice(1, -1)));
+  let rest = query.replace(/"[^"]+"/g, '').trim();
+
+  // -제외어 추출
+  rest.split(/\s+/).forEach(token => {
+    if (!token) return;
+    if (token.startsWith('-') && token.length > 1) excludes.push(token.slice(1).toLowerCase());
+    else includes.push(token.toLowerCase());
+  });
+
+  return { exact, excludes, includes };
+}
+
 function runSearch(query) {
   lastSearchQuery = query;
   const q = query.trim();
@@ -1592,11 +1613,26 @@ function runSearch(query) {
     kpiEl.style.display = 'none';
     return;
   }
+
+  const { exact, excludes, includes } = parseQuery(q);
+
+  function matchField(text) {
+    if (!text) return false;
+    const t = text.toLowerCase();
+    // 제외어 체크
+    if (excludes.some(e => t.includes(e))) return false;
+    // 정확한 문구 체크
+    if (exact.length > 0 && !exact.every(e => t.includes(e.toLowerCase()))) return false;
+    // 일반 키워드 체크
+    if (includes.length > 0 && !includes.every(i => t.includes(i))) return false;
+    return true;
+  }
+
   const hits = [];
   for (const date of DATES) {
     for (const p of (ALL_DATA[date].search_programs || ALL_DATA[date].all_programs || [])) {
-      const nameMatch = p.프로그램명 && p.프로그램명.includes(q);
-      const playerMatch = p.대국자 && p.대국자.includes(q);
+      const nameMatch = matchField(p.프로그램명);
+      const playerMatch = matchField(p.대국자);
       if (searchType === 'prog' && !nameMatch) continue;
       if (searchType === 'player' && !playerMatch) continue;
       if (searchType === 'all' && !nameMatch && !playerMatch) continue;
